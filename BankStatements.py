@@ -27,6 +27,7 @@ class MainScreen(MDScreen):
             with open(path, "r", encoding='Windows-1251') as file:
                 self.lines = file.read().splitlines()
                 #print(f"Текст: {self.lines}")
+                #print(self.get_required_values());
 
                 self.exit_manager()
 
@@ -42,36 +43,6 @@ class MainScreen(MDScreen):
         self.manager_open = False
         self.file_manager.close()
 
-    # Работа с гугл таблицами
-    def upload_to_googledrive(self):
-        service_account = gspread.service_account(filename=service_account_filename)
-        spreadsheet = service_account.open(google_sheet_name)
-        worksheet = spreadsheet.worksheet(worksheet_name)
-        if self.lines != []:  # Проверяем не пустой ли файл
-            worksheet.update(f"A{self.next_available_row(worksheet)}",self.lines)
-
-        else:
-            print("Файл не выбран или содержимое отсутствует.")
-
-    # Поиск следующей свободной строки в таблице
-    def next_available_row(self, worksheet):
-        str_list = list(filter(None, worksheet.col_values(1))) # Берем все значения из первого столбика, потом ...?
-        return len(str_list) + 1
-
-    """
-    def upload_dates_to_googledrive(self, dates):
-        service_account = gspread.service_account(filename=service_account_filename)
-        spreadsheet = service_account.open(google_sheet_name)
-        worksheet = spreadsheet.worksheet(worksheet_name)
-        if dates != []:
-            print(f"A{self.next_available_row(worksheet)}:A{self.next_available_row(worksheet) + len(dates)}")
-            print(dates)
-            worksheet.update(f"A{self.next_available_row(worksheet)}:A{self.next_available_row(worksheet)+len(dates)}", dates)
-
-        else:
-            print("Файл не выбран или содержимое отсутствует.")
-    """
-
     # Получаем наш расчетный счет, на который идет приток денег
     def get_income_checking_account(self):
         for line in self.lines:
@@ -82,10 +53,9 @@ class MainScreen(MDScreen):
 
     # Получаем значения необходимые для вычисления данных, которые потом будем вносить в таблицу
     def get_required_values(self):
-        income_checking_account = self.get_income_checking_account(self.lines)  # РасчСчет
         dates = []  # Дата
-        payer_banks = []  # ПлательщикБанк1
         beneficiary_banks = []  # ПолучательБанк1
+        payer_banks = []  # ПлательщикБанк1
         recipients = []  # Получатель1
         payers = []  # Плательщик1
         sums_of_money = []  # Сумма
@@ -93,57 +63,107 @@ class MainScreen(MDScreen):
         payers_accounts = []  # ПлательщикСчет
         purposes_of_payments = []  # НазначениеПлатежа
 
+        is_document_section_started = False
         for line in self.lines:
-            if line.startswith('Дата='):
-                date = line.replace('Дата=', "")
-                dates.append(date)
+            if line.startswith('СекцияДокумент='):
+                is_document_section_started = True
 
-            if line.startswith('ПлательщикБанк1='):
-                payer_bank = line.replace('ПлательщикБанк1=', "")
-                payer_banks.append(payer_bank)
+            if is_document_section_started:
+                if line.startswith('Дата='):
+                    date = line.replace('Дата=', "")
+                    dates.append(date)
 
-            if line.startswith('ПолучательБанк1='):
-                beneficiary_bank = line.replace('ПолучательБанк1=', "")
-                beneficiary_banks.append(beneficiary_bank)
+                if line.startswith('ПолучательБанк1='):
+                    beneficiary_bank = line.replace('ПолучательБанк1=', "")
+                    beneficiary_banks.append(beneficiary_bank)
 
-            if line.startswith(('Получатель=', 'Получатель1=')):
-                if line.startswith('Получатель='):
-                    recipient = line.replace('Получатель=', "")
-                if line.startswith('Получатель1='):
-                    recipient = line.replace('Получатель1=', "")
-                recipients.append(recipient)
+                if line.startswith('ПлательщикБанк1='):
+                    payer_bank = line.replace('ПлательщикБанк1=', "")
+                    payer_banks.append(payer_bank)
 
-            if line.startswith(('Плательщик=', 'Плательщик1=')):
-                if line.startswith('Плательщик='):
-                    payer = line.replace('Плательщик=', "")
-                if line.startswith('Плательщик1='):
-                    payer = line.replace('Плательщик1=', "")
-                payers.append(payer)
+                if line.startswith(('Получатель=', 'Получатель1=')):
+                    if line.startswith('Получатель='):
+                        recipient = line.replace('Получатель=', "")
+                    if line.startswith('Получатель1='):
+                        recipient = line.replace('Получатель1=', "")
+                    recipients.append(recipient)
 
-            if line.startswith('Сумма='):
-                amount_of_money = line.replace('Сумма=', "")
-                sums_of_money.append(amount_of_money)
+                if line.startswith(('Плательщик=', 'Плательщик1=')):
+                    if line.startswith('Плательщик='):
+                        payer = line.replace('Плательщик=', "")
+                    if line.startswith('Плательщик1='):
+                        payer = line.replace('Плательщик1=', "")
+                    payers.append(payer)
 
-            if line.startswith('ПолучательСчет='):
-                recipient_account = line.replace('ПолучательСчет=', "")
-                recipients_accounts.append(recipient_account)
+                if line.startswith('Сумма='):
+                    amount_of_money = line.replace('Сумма=', "")
+                    sums_of_money.append(amount_of_money)
 
-            if line.startswith('ПлательщикСчет='):
-                payer_account = line.replace('ПлательщикСчет=', "")
-                payers_accounts.append(payer_account)
+                if line.startswith('ПолучательСчет='):
+                    recipient_account = line.replace('ПолучательСчет=', "")
+                    recipients_accounts.append(recipient_account)
 
-            if line.startswith('НазначениеПлатежа='):
-                purpose_of_payment = line.replace('НазначениеПлатежа=', "")
-                purposes_of_payments.append(purpose_of_payment)
+                if line.startswith('ПлательщикСчет='):
+                    payer_account = line.replace('ПлательщикСчет=', "")
+                    payers_accounts.append(payer_account)
 
-        required_values = list(map(list, zip(dates, payer_banks, beneficiary_banks, recipients,
-                                             payers, amount_of_money, recipients_accounts,
+                if line.startswith('НазначениеПлатежа='):
+                    purpose_of_payment = line.replace('НазначениеПлатежа=', "")
+                    purposes_of_payments.append(purpose_of_payment)
+
+        required_values = list(map(list, zip(dates, beneficiary_banks, payer_banks, recipients,
+                                             payers, sums_of_money, recipients_accounts,
                                              payers_accounts, purposes_of_payments)))
-        return required_values, income_checking_account
+        return required_values
 
     # Формируем данные которые будем уже непосредственно вносить в таблицу
-    def get_data_to_upload(self):
-        pass
+    def get_data_to_upload(self, required_values, income_checking_account):
+        data_to_upload = []
+        for values in required_values:
+            if values[6] == income_checking_account:
+                is_income = True  # Приток
+            elif values[7] == income_checking_account:
+                is_income = False  # Отток
+
+                payment_date = values[0]  # Дата оплаты
+                comment = values[8]  # Комментарий
+
+            if is_income:
+                payment_type = values[1]  # Тип оплаты (ПолучательБанк1)
+                legal_entity = values[3]  # Юр лицо (Получатель1)
+                income = values[5] # Приток
+                outcome = ''  # Отток
+                counterparty = values[4]  # Контрагент (Плательщик1)
+
+            if not is_income:
+                payment_type = values[2]  # Тип оплаты (ПлательщикБанк1)
+                legal_entity = values[4]  # Юр лицо (Плательщик1)
+                income = ''  # Приток
+                outcome = values[5]  # Отток
+                counterparty = values[3]  # Контрагент (Получатель1)
+
+            data_to_upload.append(payment_date, payment_type, legal_entity, income, outcome, counterparty)
+        return data_to_upload
+
+    # Поиск следующей свободной строки в таблице
+    def next_available_row(self, worksheet):
+        str_list = list(filter(None, worksheet.col_values(1))) # Берем все значения из первого столбика, потом ...?
+        return len(str_list) + 1
+
+    # Работа с гугл таблицами
+    def upload_to_googledrive(self):
+        service_account = gspread.service_account(filename=service_account_filename)
+        spreadsheet = service_account.open(google_sheet_name)
+        worksheet = spreadsheet.worksheet(worksheet_name)
+
+        required_values = self.get_required_values()
+        income_checking_account = self.get_income_checking_account()  # РасчСчет
+        data_to_upload = self.get_data_to_upload(required_values, income_checking_account)
+        if data_to_upload:  # Проверяем не пустой ли файл
+            worksheet.update(f"A{self.next_available_row(worksheet)}:A{self.next_available_row(worksheet) + len(data_to_upload)}", [data_to_upload])
+
+        else:
+            print("Файл не выбран или содержимое отсутствует.")
 
 class BankStatementsApp(MDApp):
     def build(self):
