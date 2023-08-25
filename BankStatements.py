@@ -4,7 +4,7 @@ from kivymd.uix.screen import MDScreen
 import gspread
 google_sheet_name = "Выписки"
 service_account_filename = "service_account.json"
-worksheet_name = "Лист1" # Название листа (страницы), которое выбирается снизу таблицы.
+worksheet_name = "Лист1"  # Название листа (страницы), которое выбирается снизу таблицы.
 starting_directory = "/home/anton"
 
 class MainScreen(MDScreen):
@@ -12,7 +12,7 @@ class MainScreen(MDScreen):
         super(MainScreen, self).__init__(**kwargs)
         self.manager_open = False
         self.file_manager = MDFileManager(exit_manager=self.exit_manager, select_path=self.select_path)
-        self.lines = [] # Строки текстового файла
+        self.lines = []  # Строки текстового файла
 
     # Выбор файла
     def open_file_manager(self, *args):
@@ -47,7 +47,7 @@ class MainScreen(MDScreen):
         service_account = gspread.service_account(filename=service_account_filename)
         spreadsheet = service_account.open(google_sheet_name)
         worksheet = spreadsheet.worksheet(worksheet_name)
-        if self.lines != []: # Проверяем не пустой ли файл
+        if self.lines != []:  # Проверяем не пустой ли файл
             worksheet.update(f"A{self.next_available_row(worksheet)}",self.lines)
 
         else:
@@ -82,16 +82,16 @@ class MainScreen(MDScreen):
 
     # Получаем значения необходимые для вычисления данных, которые потом будем вносить в таблицу
     def get_required_values(self):
-        income_checking_account = self.get_income_checking_account(self.lines)
-        dates = []
-        payer_banks = []
-        beneficiary_banks = []
-        recipients = []
-        payers = []
-        sums_of_money = []
-        recipients_accounts = []
-        payers_accounts = []
-        purposes_of_payments = []
+        income_checking_account = self.get_income_checking_account(self.lines)  # РасчСчет
+        dates = []  # Дата
+        payer_banks = []  # ПлательщикБанк1
+        beneficiary_banks = []  # ПолучательБанк1
+        recipients = []  # Получатель1
+        payers = []  # Плательщик1
+        sums_of_money = []  # Сумма
+        recipients_accounts = []  # ПолучательСчет
+        payers_accounts = []  # ПлательщикСчет
+        purposes_of_payments = []  # НазначениеПлатежа
 
         for line in self.lines:
             if line.startswith('Дата='):
@@ -125,8 +125,16 @@ class MainScreen(MDScreen):
                 sums_of_money.append(amount_of_money)
 
             if line.startswith('ПолучательСчет='):
-                recipients_account = line.replace('ПолучательСчет=', "")
-                recipients_accounts.append(recipients_account)
+                recipient_account = line.replace('ПолучательСчет=', "")
+                recipients_accounts.append(recipient_account)
+
+            if line.startswith('ПлательщикСчет='):
+                payer_account = line.replace('ПлательщикСчет=', "")
+                payers_accounts.append(payer_account)
+
+            if line.startswith('НазначениеПлатежа='):
+                purpose_of_payment = line.replace('НазначениеПлатежа=', "")
+                purposes_of_payments.append(purpose_of_payment)
 
         required_values = list(map(list, zip(dates, payer_banks, beneficiary_banks, recipients,
                                              payers, amount_of_money, recipients_accounts,
