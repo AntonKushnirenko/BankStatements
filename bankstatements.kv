@@ -1,0 +1,16 @@
+<MainScreen>
+    MDScreen:
+
+        # Кнопка выбора файла, по нажатию которой открывается файловый менеджер
+        MDRaisedButton
+            text: "Выбрать файл"
+            pos_hint: {'center_x': 0.5, 'center_y': 0.66}
+            on_release:
+                root.open_file_manager()
+
+        # Кнопка Выгрузки файла на Гугл Диск
+        MDRaisedButton
+            text: "Выгрузить на GoogleDrive"
+            pos_hint: {'center_x': 0.5, 'center_y': 0.33}
+            on_release:
+                root.upload_to_googledrive()
