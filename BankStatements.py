@@ -2,6 +2,8 @@ from kivymd.app import MDApp
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.screen import MDScreen
 import gspread
+#from forex_python.converter import CurrencyRates
+
 google_sheet_name = "Выписки"
 service_account_filename = "service_account.json"
 worksheet_name = "Лист1"  # Название листа (страницы), которое выбирается снизу таблицы.
@@ -128,6 +130,16 @@ class MainScreen(MDScreen):
                 is_income = False  # Отток
 
             payment_date = values[0]  # Дата оплаты
+
+            # Эти значения я пока не понял как получать
+            accrual_date = ""  # Дата начисления
+            article = ""  # Статья
+            amount_in_cny = ""  # Сумма в CNY
+            #cny_exchange_rate = CurrencyRates().get_rate('USD', 'EUR')  # Курс CNY
+            cny_exchange_rate = ""
+            nds = ""  # НДС
+            project = ""  # Проект
+
             comment = values[8]  # Комментарий
 
             if is_income:
@@ -156,7 +168,9 @@ class MainScreen(MDScreen):
                 outcome = values[5]  # Отток
                 counterparty = values[3]  # Контрагент (Получатель1)
 
-            data_to_upload.append([payment_date, payment_type, legal_entity, income, outcome, counterparty, comment])
+            data_to_upload.append([payment_date, accrual_date, payment_type, legal_entity, article,
+                                   amount_in_cny, cny_exchange_rate, income, outcome, nds,
+                                   project, counterparty, comment])
         return data_to_upload
 
     # Поиск следующей свободной строки в таблице
@@ -174,8 +188,9 @@ class MainScreen(MDScreen):
         income_checking_account = self.get_income_checking_account()  # РасчСчет
         data_to_upload = self.get_data_to_upload(required_values, income_checking_account)
         if data_to_upload:  # Проверяем не пустой ли файл
-            worksheet.update(f"A{self.next_available_row(worksheet)}:G{self.next_available_row(worksheet) + len(data_to_upload)}", data_to_upload)
-
+            worksheet.update(f"A{self.next_available_row(worksheet)}:{chr(ord('A')-1+len(data_to_upload[0]))}"
+                             f"{self.next_available_row(worksheet) + len(data_to_upload)}", data_to_upload)
+            # chr(ord('A')-1+len(data_to_upload[0])) - буква алфавита по номеру начиная с заглавной A
         else:
             print("Файл не выбран или содержимое отсутствует.")
 
