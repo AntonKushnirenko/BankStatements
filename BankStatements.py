@@ -2,7 +2,6 @@ from kivymd.app import MDApp
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.screen import MDScreen
 import gspread
-#from forex_python.converter import CurrencyRates
 
 google_sheet_name = "Выписки"
 service_account_filename = "service_account.json"
