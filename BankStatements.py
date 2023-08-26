@@ -6,6 +6,8 @@ google_sheet_name = "Выписки"
 service_account_filename = "service_account.json"
 worksheet_name = "Лист1"  # Название листа (страницы), которое выбирается снизу таблицы.
 starting_directory = "/home/anton"
+ooo_search_words = ["ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО"]
+ip_search_words = ["ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ", "ИП"]
 
 class MainScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -125,24 +127,36 @@ class MainScreen(MDScreen):
             elif values[7] == income_checking_account:
                 is_income = False  # Отток
 
-                payment_date = values[0]  # Дата оплаты
-                comment = values[8]  # Комментарий
+            payment_date = values[0]  # Дата оплаты
+            comment = values[8]  # Комментарий
 
             if is_income:
                 payment_type = values[1]  # Тип оплаты (ПолучательБанк1)
-                legal_entity = values[3]  # Юр лицо (Получатель1)
+
+                if any(search_word in values[3] for search_word in ooo_search_words):
+                # search_word in string это функция, которая выполняется для всех search_word в search_words
+                # any возращает true, если хоть одно значение true
+                    legal_entity = "ООО"  # Юр лицо (Получатель1)
+                elif any(search_word in values[3] for search_word in ip_search_words):
+                    legal_entity = "ИП"  # Юр лицо (Получатель1)
+
                 income = values[5] # Приток
                 outcome = ''  # Отток
                 counterparty = values[4]  # Контрагент (Плательщик1)
 
             if not is_income:
                 payment_type = values[2]  # Тип оплаты (ПлательщикБанк1)
-                legal_entity = values[4]  # Юр лицо (Плательщик1)
+
+                if any(search_word in values[4] for search_word in ooo_search_words):
+                    legal_entity = "ООО"  # Юр лицо (Плательщик1)
+                elif any(search_word in values[4] for search_word in ip_search_words):
+                    legal_entity = "ИП"  # Юр лицо (Плательщик1)
+
                 income = ''  # Приток
                 outcome = values[5]  # Отток
                 counterparty = values[3]  # Контрагент (Получатель1)
 
-            data_to_upload.append(payment_date, payment_type, legal_entity, income, outcome, counterparty)
+            data_to_upload.append([payment_date, payment_type, legal_entity, income, outcome, counterparty, comment])
         return data_to_upload
 
     # Поиск следующей свободной строки в таблице
@@ -160,7 +174,7 @@ class MainScreen(MDScreen):
         income_checking_account = self.get_income_checking_account()  # РасчСчет
         data_to_upload = self.get_data_to_upload(required_values, income_checking_account)
         if data_to_upload:  # Проверяем не пустой ли файл
-            worksheet.update(f"A{self.next_available_row(worksheet)}:A{self.next_available_row(worksheet) + len(data_to_upload)}", [data_to_upload])
+            worksheet.update(f"A{self.next_available_row(worksheet)}:G{self.next_available_row(worksheet) + len(data_to_upload)}", data_to_upload)
 
         else:
             print("Файл не выбран или содержимое отсутствует.")
