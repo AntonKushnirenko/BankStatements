@@ -161,6 +161,7 @@ class MainScreen(MDScreen):
                     legal_entity = "ИП"  # Юр лицо (Получатель1)
                 else:
                     legal_entity = ""
+                    print("Ошибка в Юр лице Получателя")
 
                 income = values[5] # Приток
                 outcome = ''  # Отток
@@ -175,7 +176,7 @@ class MainScreen(MDScreen):
                     legal_entity = "ИП"  # Юр лицо (Плательщик1)
                 else:
                     legal_entity = ""
-                    print("Ошибка в Юр лице")
+                    print("Ошибка в Юр лице Плательщика")
 
                 income = ''  # Приток
                 outcome = values[5]  # Отток
