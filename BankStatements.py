@@ -30,8 +30,6 @@ class MainScreen(MDScreen):
             # Читаем содержимое
             with open(path, "r", encoding='Windows-1251') as file:
                 self.lines = file.read().splitlines()
-                #print(f"Текст: {self.lines}")
-                #print(self.get_required_values());
 
                 self.exit_manager()
 
@@ -52,8 +50,9 @@ class MainScreen(MDScreen):
         for line in self.lines:
             if line.startswith('РасчСчет='):
                 income_checking_account = line.replace('РасчСчет=', "")
-                break
-        return income_checking_account
+                return income_checking_account
+        print("Ошибка в получении расчетного счета ")
+        return ""
 
     # Получаем значения необходимые для вычисления данных, которые потом будем вносить в таблицу
     def get_required_values(self):
@@ -88,15 +87,21 @@ class MainScreen(MDScreen):
                 if line.startswith(('Получатель=', 'Получатель1=')):
                     if line.startswith('Получатель='):
                         recipient = line.replace('Получатель=', "")
-                    if line.startswith('Получатель1='):
+                    elif line.startswith('Получатель1='):
                         recipient = line.replace('Получатель1=', "")
+                    else:
+                        recipient = ""
+                        print("Ошибка в Получателе")
                     recipients.append(recipient)
 
                 if line.startswith(('Плательщик=', 'Плательщик1=')):
                     if line.startswith('Плательщик='):
                         payer = line.replace('Плательщик=', "")
-                    if line.startswith('Плательщик1='):
+                    elif line.startswith('Плательщик1='):
                         payer = line.replace('Плательщик1=', "")
+                    else:
+                        payer = ""
+                        print("Ошибка в Плательщике")
                     payers.append(payer)
 
                 if line.startswith('Сумма='):
@@ -128,6 +133,9 @@ class MainScreen(MDScreen):
                 is_income = True  # Приток
             elif values[7] == income_checking_account:
                 is_income = False  # Отток
+            else:
+                is_income = False
+                print("Ошибка в притоке/оттоке")
 
             payment_date = values[0]  # Дата оплаты
 
@@ -135,8 +143,8 @@ class MainScreen(MDScreen):
             accrual_date = ""  # Дата начисления
             article = ""  # Статья
             amount_in_cny = ""  # Сумма в CNY
-            #cny_exchange_rate = CurrencyRates().get_rate('USD', 'EUR')  # Курс CNY
-            cny_exchange_rate = ""
+            cny_exchange_rate = ""  # Курс CNY
+            # Курс указывается в комментарие. При притоке используется курс сделки, при оттоке курс ЦБ?
             nds = ""  # НДС
             project = ""  # Проект
 
@@ -145,28 +153,40 @@ class MainScreen(MDScreen):
             if is_income:
                 payment_type = values[1]  # Тип оплаты (ПолучательБанк1)
 
-                if any(search_word in values[3] for search_word in ooo_search_words):
+                if any(search_word.lower() in values[3].lower() for search_word in ooo_search_words):
                 # search_word in string это функция, которая выполняется для всех search_word в search_words
                 # any возращает true, если хоть одно значение true
                     legal_entity = "ООО"  # Юр лицо (Получатель1)
-                elif any(search_word in values[3] for search_word in ip_search_words):
+                elif any(search_word.lower() in values[3].lower() for search_word in ip_search_words):
                     legal_entity = "ИП"  # Юр лицо (Получатель1)
+                else:
+                    legal_entity = ""
 
                 income = values[5] # Приток
                 outcome = ''  # Отток
                 counterparty = values[4]  # Контрагент (Плательщик1)
 
-            if not is_income:
+            elif not is_income:
                 payment_type = values[2]  # Тип оплаты (ПлательщикБанк1)
 
-                if any(search_word in values[4] for search_word in ooo_search_words):
+                if any(search_word.lower() in values[4].lower() for search_word in ooo_search_words):
                     legal_entity = "ООО"  # Юр лицо (Плательщик1)
-                elif any(search_word in values[4] for search_word in ip_search_words):
+                elif any(search_word.lower() in values[4].lower() for search_word in ip_search_words):
                     legal_entity = "ИП"  # Юр лицо (Плательщик1)
+                else:
+                    legal_entity = ""
+                    print("Ошибка в Юр лице")
 
                 income = ''  # Приток
                 outcome = values[5]  # Отток
                 counterparty = values[3]  # Контрагент (Получатель1)
+
+            else:  # На случай если ничего не прошло
+                payment_type = ""
+                legal_entity = ""
+                income = ""
+                outcome = ""
+                counterparty = ""
 
             data_to_upload.append([payment_date, accrual_date, payment_type, legal_entity, article,
                                    amount_in_cny, cny_exchange_rate, income, outcome, nds,
