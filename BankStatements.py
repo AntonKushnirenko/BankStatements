@@ -9,6 +9,7 @@ worksheet_name = "Лист1"  # Название листа (страницы), 
 starting_directory = "/home/anton"
 ooo_search_words = ["ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО"]
 ip_search_words = ["ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ", "ИП"]
+rate_search_words = ["курс", "Курс сделки", "курс ЦБ"]
 
 class MainScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -18,7 +19,7 @@ class MainScreen(MDScreen):
         self.lines = []  # Строки текстового файла
 
     # Выбор файла
-    def open_file_manager(self, *args):
+    def open_file_manager(self):
         self.file_manager.show(starting_directory)  # Здесь указываем начальную директорию
 
     # Этот метод будет вызываться при выборе файла
@@ -33,14 +34,15 @@ class MainScreen(MDScreen):
                 self.exit_manager()
 
     # Проверяем текстовый ли файл
-    def is_txt(self, path):
+    @staticmethod
+    def is_txt(path):
         if path.endswith(('.txt', '.doc', '.docx', '.odt')):
             return True
         else:
             print("Неподдерживаемый формат файла")
             return False
 
-    def exit_manager(self, *args):
+    def exit_manager(self):
         self.manager_open = False
         self.file_manager.close()
 
@@ -133,69 +135,107 @@ class MainScreen(MDScreen):
             elif values[7] == income_checking_account:
                 is_income = False  # Отток
             else:
-                is_income = False
+                is_income = None
                 print("Ошибка в притоке/оттоке")
 
             payment_date = values[0]  # Дата оплаты
 
             # Эти значения я пока не понял как получать
-            accrual_date = ""  # Дата начисления
+            accrual_date = ""  # Дата начисления. Используется при налогах (страхование)
             article = ""  # Статья
-            amount_in_cny = ""  # Сумма в CNY
-            cny_exchange_rate = ""  # Курс CNY
-            # Курс указывается в комментарие. При притоке используется курс сделки, при оттоке курс ЦБ?
             nds = ""  # НДС
             project = ""  # Проект
 
             comment = values[8]  # Комментарий
 
-            if is_income:
-                payment_type = values[1]  # Тип оплаты (ПолучательБанк1)
-
-                if any(search_word.lower() in values[3].lower() for search_word in ooo_search_words):
-                # search_word in string это функция, которая выполняется для всех search_word в search_words
-                # any возращает true, если хоть одно значение true
-                    legal_entity = "ООО"  # Юр лицо (Получатель1)
-                elif any(search_word.lower() in values[3].lower() for search_word in ip_search_words):
-                    legal_entity = "ИП"  # Юр лицо (Получатель1)
-                else:
-                    legal_entity = ""
-                    print("Ошибка в Юр лице Получателя")
-
-                income = values[5] # Приток
-                outcome = ''  # Отток
-                counterparty = values[4]  # Контрагент (Плательщик1)
-
-            elif not is_income:
-                payment_type = values[2]  # Тип оплаты (ПлательщикБанк1)
-
-                if any(search_word.lower() in values[4].lower() for search_word in ooo_search_words):
-                    legal_entity = "ООО"  # Юр лицо (Плательщик1)
-                elif any(search_word.lower() in values[4].lower() for search_word in ip_search_words):
-                    legal_entity = "ИП"  # Юр лицо (Плательщик1)
-                else:
-                    legal_entity = ""
-                    print("Ошибка в Юр лице Плательщика")
-
-                income = ''  # Приток
-                outcome = values[5]  # Отток
-                counterparty = values[3]  # Контрагент (Получатель1)
-
-            else:  # На случай если ничего не прошло
-                payment_type = ""
-                legal_entity = ""
-                income = ""
-                outcome = ""
-                counterparty = ""
+            payment_type, legal_entity, amount_in_cny, cny_exchange_rate, income, outcome, counterparty = self.get_values_depending_on_income_or_outcome(values, is_income)
 
             data_to_upload.append([payment_date, accrual_date, payment_type, legal_entity, article,
                                    amount_in_cny, cny_exchange_rate, income, outcome, nds,
                                    project, counterparty, comment])
         return data_to_upload
 
+    def get_values_depending_on_income_or_outcome(self, values, is_income):
+        if is_income:
+            payment_type_index = 1
+            legal_entity_index = 3
+            rate_search_words_index = 2
+            # Видимо в таблицу курс записываеться при переводе с карты ООО Модульбанк (юань),
+            # а у меня, наверное, ООО Модульбанк (руб), поэтому пока поменял индексы в обратную сторону (1, 2 на 2, 1)
+            counterparty_index = 4
+        elif not is_income:
+            payment_type_index = 2
+            legal_entity_index = 4
+            rate_search_words_index = 1
+            counterparty_index = 3
+        else:
+            print("Ошибка: is_income не определен.")
+            payment_type = legal_entity = amount_in_cny = cny_exchange_rate = income = outcome = counterparty = ""
+            return payment_type, legal_entity, amount_in_cny, cny_exchange_rate, income, outcome, counterparty
+
+        comment_index = 8
+        sum_index = 5
+
+        payment_type = values[payment_type_index]  # Тип оплаты (ПолучательБанк1/ПлательщикБанк1)
+
+        if any(search_word.lower() in values[legal_entity_index].lower() for search_word in ooo_search_words):
+            # search_word in string это функция, которая выполняется для всех search_word в search_words
+            # any возращает true, если хоть одно значение true
+            legal_entity = "ООО"  # Юр лицо (Получатель1/Плательщик1)
+        elif any(search_word.lower() in values[legal_entity_index].lower() for search_word in ip_search_words):
+            legal_entity = "ИП"  # Юр лицо (Получатель1/Плательщик1)
+        else:
+            legal_entity = ""
+            print("Ошибка в Юр лице")
+
+        # Курс CNY и Сумма в CNY
+        cny_exchange_rate = ""
+        amount_in_cny = ""
+        # Курс указывается в комментарии. При притоке используется курс сделки, при оттоке курс ЦБ?
+        if any(search_word.lower() in values[comment_index].lower() for search_word in rate_search_words):
+            cny_exchange_rate, amount_in_cny = self.get_cny_exchange_rate_and_amount_in_cny(values[comment_index],
+                                                                                            values[sum_index],
+                                                                                            rate_search_words_index)
+            # Округляем и оставляем две цифры после запятой
+            cny_exchange_rate = f'{float(cny_exchange_rate):.2f}'.replace(".", ",")
+            amount_in_cny = f'{float(amount_in_cny):.2f}'.replace(".", ",")
+
+        income = ''  # Приток
+        outcome = ''  # Отток
+        if is_income:
+            income = str(values[sum_index]).replace(".", ",") # Приток
+        elif not is_income:
+            outcome = str(values[sum_index]).replace(".", ",")  # Отток
+
+        counterparty = values[counterparty_index]  # Контрагент (Плательщик1/Получатель1)
+
+        return payment_type, legal_entity, amount_in_cny, cny_exchange_rate, income, outcome, counterparty
+
+    @staticmethod
+    def get_cny_exchange_rate_and_amount_in_cny(comment_string, amount_in_rub, rate_search_words_index):
+        # Находим конец слов "Курс сделки " или "курс ЦБ "
+        rate_start_index = comment_string.find(rate_search_words[rate_search_words_index]) + len(
+            rate_search_words[rate_search_words_index]) + 1
+
+        # Находим конец числа
+        for index, character in enumerate(str(comment_string[rate_start_index:])):
+            if not character.isdigit():
+                if not character == ("." or ","):
+                    rate_end_index = rate_start_index + index
+                    cny_exchange_rate = str(comment_string[rate_start_index:rate_end_index])  # Курс CNY
+                    amount_in_cny = str(float(amount_in_rub.replace(",", ".")) /
+                                        float(cny_exchange_rate.replace(",", ".")))  # Сумма в CNY
+                    return cny_exchange_rate, amount_in_cny
+        # Если конец числа не найден, т.к. строка закончилось
+        cny_exchange_rate = str(comment_string[rate_start_index:])  # Курс CNY
+        amount_in_cny = str(float(amount_in_rub.replace(",", ".")) /
+                            float(cny_exchange_rate.replace(",", ".")))  # Сумма в CNY
+        return cny_exchange_rate, amount_in_cny
+
     # Поиск следующей свободной строки в таблице
-    def next_available_row(self, worksheet):
-        str_list = list(filter(None, worksheet.col_values(1))) # Берем все значения из первого столбика, потом ...?
+    @staticmethod
+    def next_available_row(worksheet):
+        str_list = list(filter(None, worksheet.col_values(1)))  # Берем все значения из первого столбика, потом ...?
         return len(str_list) + 1
 
     # Работа с гугл таблицами
@@ -214,8 +254,9 @@ class MainScreen(MDScreen):
         else:
             print("Файл не выбран или содержимое отсутствует.")
 
+
 class BankStatementsApp(MDApp):
     def build(self):
         return MainScreen()
-BankStatementsApp().run()
 
+BankStatementsApp().run()
