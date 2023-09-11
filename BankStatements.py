@@ -1,6 +1,7 @@
 from kivymd.app import MDApp
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.screen import MDScreen
+from kivymd.uix.label import MDLabel
 import gspread
 
 google_sheet_name = "Выписки"
@@ -17,6 +18,7 @@ class MainScreen(MDScreen):
         self.manager_open = False
         self.file_manager = MDFileManager(exit_manager=self.exit_manager, select_path=self.select_path)
         self.lines = []  # Строки текстового файла
+        self.selected_file_label = None
 
     # Выбор файла
     def open_file_manager(self):
@@ -30,6 +32,11 @@ class MainScreen(MDScreen):
             # Читаем содержимое
             with open(path, "r", encoding='Windows-1251') as file:
                 self.lines = file.read().splitlines()
+                if not self.selected_file_label:
+                    self.selected_file_label = MDLabel(text=f"Выбран файл: {path}", halign='center')
+                    self.add_widget(self.selected_file_label)
+                elif self.selected_file_label:
+                    self.selected_file_label.text = f"Выбран файл: {path}"
 
                 self.exit_manager()
 
