@@ -43,9 +43,9 @@ class MainScreen(MDScreen):
                     self.add_widget(self.selected_file_label)
                 elif self.selected_file_label:
                     self.selected_file_label.text = f"Выбран файл: {path}"
-            self.exit_manager(self)
+                self.exit_manager(self)
         else:
-            # Вылезающее окошко с ошибкой снизу
+            # Вылезающее уведомление с ошибкой формата файла снизу
             if not self.not_txt_snackbar:
                 self.not_txt_snackbar = Snackbar(text="Неподдерживаемый формат файла!",
                                                  font_size=app.font_size_value,
@@ -274,7 +274,7 @@ class MainScreen(MDScreen):
             # chr(ord('A')-1+len(data_to_upload[0])) - буква алфавита по номеру начиная с заглавной A
         else:
             print("Файл не выбран или содержимое отсутствует.")
-            # Вылезающее окошко с ошибкой снизу
+            # Вылезающее уведомление с ошибкой данных выбранного файла снизу
             if not self.data_error_snackbar:
                 app = BankStatementsApp.get_running_app()
                 self.data_error_snackbar = Snackbar(text="Выбранный файл отсутствует или недействителен!",
