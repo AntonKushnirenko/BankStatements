@@ -2,6 +2,7 @@ from kivymd.app import MDApp
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.label import MDLabel
+from kivymd.uix.snackbar import Snackbar
 import gspread
 
 google_sheet_name = "Выписки"
@@ -19,6 +20,8 @@ class MainScreen(MDScreen):
         self.file_manager = MDFileManager(exit_manager=self.exit_manager, select_path=self.select_path)
         self.lines = []  # Строки текстового файла
         self.selected_file_label = None
+        self.not_txt_snackbar = None
+        self.data_error_snackbar = None
 
     # Выбор файла
     def open_file_manager(self):
@@ -27,29 +30,40 @@ class MainScreen(MDScreen):
     # Этот метод будет вызываться при выборе файла
     def select_path(self, path):
         print("Путь: ", path)
+        app = BankStatementsApp.get_running_app()
         # Проверяем текстовый ли файл
         if self.is_txt(path):
             # Читаем содержимое
             with open(path, "r", encoding='Windows-1251') as file:
                 self.lines = file.read().splitlines()
                 if not self.selected_file_label:
-                    self.selected_file_label = MDLabel(text=f"Выбран файл: {path}", halign='center')
+                    self.selected_file_label = MDLabel(text=f"Выбран файл: {path}", halign='center',
+                                                       pos_hint={"center_x": 0.5, "center_y": 0.45},
+                                                       font_style="H5")
                     self.add_widget(self.selected_file_label)
                 elif self.selected_file_label:
                     self.selected_file_label.text = f"Выбран файл: {path}"
-
-                self.exit_manager()
+            self.exit_manager(self)
+        else:
+            # Вылезающее окошко с ошибкой снизу
+            if not self.not_txt_snackbar:
+                self.not_txt_snackbar = Snackbar(text="Неподдерживаемый формат файла!",
+                                                 font_size=app.font_size_value,
+                                                 duration=1, size_hint_x=0.8,
+                                                 pos_hint={"center_x": 0.5, "center_y": 0.1})
+            self.not_txt_snackbar.open()
 
     # Проверяем текстовый ли файл
     @staticmethod
     def is_txt(path):
-        if path.endswith(('.txt', '.doc', '.docx', '.odt')):
+        # if path.endswith(('.txt', '.doc', '.docx', '.odt')):
+        if path.endswith('.txt'):
             return True
         else:
             print("Неподдерживаемый формат файла")
             return False
 
-    def exit_manager(self):
+    def exit_manager(self, instance):
         self.manager_open = False
         self.file_manager.close()
 
@@ -210,7 +224,7 @@ class MainScreen(MDScreen):
         income = ''  # Приток
         outcome = ''  # Отток
         if is_income:
-            income = str(values[sum_index]).replace(".", ",") # Приток
+            income = str(values[sum_index]).replace(".", ",")  # Приток
         elif not is_income:
             outcome = str(values[sum_index]).replace(".", ",")  # Отток
 
@@ -260,9 +274,19 @@ class MainScreen(MDScreen):
             # chr(ord('A')-1+len(data_to_upload[0])) - буква алфавита по номеру начиная с заглавной A
         else:
             print("Файл не выбран или содержимое отсутствует.")
+            # Вылезающее окошко с ошибкой снизу
+            if not self.data_error_snackbar:
+                app = BankStatementsApp.get_running_app()
+                self.data_error_snackbar = Snackbar(text="Выбранный файл отсутствует или недействителен!",
+                                                 font_size=app.font_size_value,
+                                                 duration=3, size_hint_x=0.8,
+                                                 pos_hint={"center_x": 0.5, "center_y": 0.1})
+            self.data_error_snackbar.open()
 
 
 class BankStatementsApp(MDApp):
+    font_size_value = "24sp"  # Размер шрифта
+
     def build(self):
         return MainScreen()
 
