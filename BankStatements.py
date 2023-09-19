@@ -12,6 +12,8 @@ starting_directory = "/home/anton"
 ooo_search_words = ["ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО"]
 ip_search_words = ["ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ", "ИП"]
 rate_search_words = ["курс", "Курс сделки", "курс ЦБ"]
+banking_services_search_words = ["Комиссия", "Ком-я"]
+internal_movements_search_words = ["Перевод собственных денежных средств"]
 
 class MainScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -163,9 +165,10 @@ class MainScreen(MDScreen):
 
             # Эти значения я пока не понял как получать
             accrual_date = ""  # Дата начисления. Используется при налогах (страхование)
-            article = ""  # Статья
             nds = ""  # НДС
             project = ""  # Проект
+
+            article = self.get_article(values[8])  # Статья
 
             comment = values[8]  # Комментарий
 
@@ -252,6 +255,21 @@ class MainScreen(MDScreen):
         amount_in_cny = str(float(amount_in_rub.replace(",", ".")) /
                             float(cny_exchange_rate.replace(",", ".")))  # Сумма в CNY
         return cny_exchange_rate, amount_in_cny
+
+    # Получение статьи через поисковые слова в комментариях
+    @staticmethod
+    def get_article(comment_string):
+        if comment_string:
+            if any(search_word.lower() in comment_string.lower() for search_word in banking_services_search_words):
+                return "Банковское обслуживание и комиссии"
+            elif any(search_word.lower() in comment_string.lower() for search_word in rate_search_words):
+                return "Обмен валют"
+            elif any(search_word.lower() in comment_string.lower() for search_word in internal_movements_search_words):
+                return "Внутренние перемещения"
+            else:
+                return ""
+        else:
+            return ""
 
     # Поиск следующей свободной строки в таблице
     @staticmethod
