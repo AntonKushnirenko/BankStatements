@@ -8,12 +8,32 @@ import gspread
 google_sheet_name = "Выписки"
 service_account_filename = "service_account.json"
 worksheet_name = "Лист1"  # Название листа (страницы), которое выбирается снизу таблицы.
-starting_directory = "/home/anton"
+starting_directory = "/home/anton/Загрузки/Telegram Desktop"
+
 ooo_search_words = ["ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО"]
 ip_search_words = ["ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ", "ИП"]
 rate_search_words = ["курс", "Курс сделки", "курс ЦБ"]
 banking_services_search_words = ["Комиссия", "Ком-я"]
-internal_movements_search_words = ["Перевод собственных денежных средств"]
+internal_movements_search_words = ["Перевод собственных денежных средств",
+                                   "Перевод средств с расчетного счета на счет 'налоговая копилка'",
+                                   "Возврат средств по договору займа от учредителя",
+                                   "Перевод на свою карту физ лица", "перевод на собственную карту",
+                                   ]
+communication_services_search_words = ["Билайн", "beeline", "МОРТОН ТЕЛЕКОМ", "КАНТРИКОМ"]
+fuel_search_words = ["GAZPROMNEFT", "LUKOIL.AZS", "RNAZK ROSNEFT", "Газпромнефть",
+                     "AZS", "АЗС", "Нефтьмагистраль", "Лукойл"]
+yandex_search_words = ["ЯНДЕКС"]
+ozon_search_words = ["ООО ИНТЕРНЕТ РЕШЕНИЯ"]
+sbermarket_search_words = ['"МАРКЕТПЛЕЙС"', "ПАО Сбербанк"]
+fraht_search_words = ["ООО СМАРТЛОГИСТЕР"]
+customs_payments_search_words = ["ФЕДЕРАЛЬНАЯ ТАМОЖЕННАЯ СЛУЖБА", "таможенного", "ТД"]
+express_delivery_search_words = ["АВТОФЛОТ-СТОЛИЦА", "Деловые Линии", "Достависта",
+                                 "доставки", "доставка", "грузоперевозки", "грузоперевозка", "перевозки", "перевозка"]
+delivery_to_moscow_search_words = ["SHEREMETEVO-KARGO", "АВРОРА-М", "Байкал-Сервис ТК"]
+
+alpha_bank_search_words = ["АЛЬФА-БАНК"]
+modul_bank_search_words = ["МОДУЛЬБАНК"]
+
 
 class MainScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -168,11 +188,10 @@ class MainScreen(MDScreen):
             nds = ""  # НДС
             project = ""  # Проект
 
-            article = self.get_article(values[8])  # Статья
-
             comment = values[8]  # Комментарий
 
-            payment_type, legal_entity, amount_in_cny, cny_exchange_rate, income, outcome, counterparty = self.get_values_depending_on_income_or_outcome(values, is_income)
+            payment_type, legal_entity, article, amount_in_cny, cny_exchange_rate, income, outcome, counterparty = self.get_values_depending_on_income_or_outcome(
+                values, is_income)
 
             data_to_upload.append([payment_date, accrual_date, payment_type, legal_entity, article,
                                    amount_in_cny, cny_exchange_rate, income, outcome, nds,
@@ -181,14 +200,14 @@ class MainScreen(MDScreen):
 
     def get_values_depending_on_income_or_outcome(self, values, is_income):
         if is_income:
-            payment_type_index = 1
+            bank_name_type_index = 1
             legal_entity_index = 3
             rate_search_words_index = 2
             # Видимо в таблицу курс записываеться при переводе с карты ООО Модульбанк (юань),
             # а у меня, наверное, ООО Модульбанк (руб), поэтому пока поменял индексы в обратную сторону (1, 2 на 2, 1)
             counterparty_index = 4
         elif not is_income:
-            payment_type_index = 2
+            bank_name_type_index = 2
             legal_entity_index = 4
             rate_search_words_index = 1
             counterparty_index = 3
@@ -199,18 +218,44 @@ class MainScreen(MDScreen):
 
         comment_index = 8
         sum_index = 5
+        # recipient_index = 4
 
-        payment_type = values[payment_type_index]  # Тип оплаты (ПолучательБанк1/ПлательщикБанк1)
+        # Тип оплаты (ПолучательБанк1/ПлательщикБанк1)
+        # Нужно еще доделать подписи валюты в скобочках: (руб.), (юань), (usd)
+        if any(search_word.lower() in values[legal_entity_index].lower() for search_word in ooo_search_words):
+            # recipient_index = 4 - индекс Плательщик1, а мне всегда нужен Плательщик1
+            # Как оказалось - не всегда. kl_to_1c (8).txt: 05.06.2023 13605,00 Плательщик1 - ООО Яндекс,
+            # а должно быть ИП "Модуль банк", следовательно брать надо из
+            # Получатель1=Индивидуальный предприниматель Солдатов Александр Игоревич
+            payment_type_legal_entity = "ООО"
+            # Здесь нужно поменять на ИП/ООО Альфа-банк/Модуль-банк
+        elif any(search_word.lower() in values[legal_entity_index].lower() for search_word in ip_search_words):
+            payment_type_legal_entity = "ИП"
+        # Видимо еще нужна подпись "Личная карта" и "Налоговая копилка"
+        else:
+            payment_type_legal_entity = ""
+            print("Ошибка в Юр лице для типа оплаты")
 
+        if any(search_word.lower() in values[bank_name_type_index].lower() for search_word in alpha_bank_search_words):
+            payment_type = f'{payment_type_legal_entity} Альфа'
+        elif any(
+                search_word.lower() in values[bank_name_type_index].lower() for search_word in modul_bank_search_words):
+            payment_type = f'{payment_type_legal_entity} Модульбанк'
+        else:
+            payment_type = f'{payment_type_legal_entity} {values[bank_name_type_index]}'
+
+        # Юр лицо (Получатель1/Плательщик1)
         if any(search_word.lower() in values[legal_entity_index].lower() for search_word in ooo_search_words):
             # search_word in string это функция, которая выполняется для всех search_word в search_words
             # any возращает true, если хоть одно значение true
-            legal_entity = "ООО"  # Юр лицо (Получатель1/Плательщик1)
+            legal_entity = "ООО"
         elif any(search_word.lower() in values[legal_entity_index].lower() for search_word in ip_search_words):
-            legal_entity = "ИП"  # Юр лицо (Получатель1/Плательщик1)
+            legal_entity = "ИП"
         else:
             legal_entity = ""
             print("Ошибка в Юр лице")
+
+        article = self.get_article(values[comment_index], values[counterparty_index])  # Статья
 
         # Курс CNY и Сумма в CNY
         cny_exchange_rate = ""
@@ -232,8 +277,19 @@ class MainScreen(MDScreen):
             outcome = str(values[sum_index]).replace(".", ",")  # Отток
 
         counterparty = values[counterparty_index]  # Контрагент (Плательщик1/Получатель1)
+        '''
+        # Сокращаем Юр лица
+        if "OБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ" in counterparty.upper():
+            counterparty.upper().replace("OБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО")
+        elif "МОСКОВСКИЙ ФИЛИАЛ АО КБ" in counterparty.upper():
+            counterparty.upper().replace("МОСКОВСКИЙ ФИЛИАЛ АО КБ", "АО")
+        elif "СОЛДАТОВ АЛЕКСАНДР ИГОРЕВИЧ" in counterparty.upper():
+            counterparty.upper().replace("СОЛДАТОВ АЛЕКСАНДР ИГОРЕВИЧ", "Солдатов А.И.")
+        elif "ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ" in counterparty.upper():
+            counterparty.upper().replace("ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ", "ИП")
+        '''
 
-        return payment_type, legal_entity, amount_in_cny, cny_exchange_rate, income, outcome, counterparty
+        return payment_type, legal_entity, article, amount_in_cny, cny_exchange_rate, income, outcome, counterparty
 
     @staticmethod
     def get_cny_exchange_rate_and_amount_in_cny(comment_string, amount_in_rub, rate_search_words_index):
@@ -256,9 +312,9 @@ class MainScreen(MDScreen):
                             float(cny_exchange_rate.replace(",", ".")))  # Сумма в CNY
         return cny_exchange_rate, amount_in_cny
 
-    # Получение статьи через поисковые слова в комментариях
+    # Получение статьи через поисковые слова в комментариях или контрагенте
     @staticmethod
-    def get_article(comment_string):
+    def get_article(comment_string, counterparty_string):
         if comment_string:
             if any(search_word.lower() in comment_string.lower() for search_word in banking_services_search_words):
                 return "Банковское обслуживание и комиссии"
@@ -266,6 +322,28 @@ class MainScreen(MDScreen):
                 return "Обмен валют"
             elif any(search_word.lower() in comment_string.lower() for search_word in internal_movements_search_words):
                 return "Внутренние перемещения"
+            elif any(search_word.lower() in (comment_string.lower() or counterparty_string.lower())
+                     for search_word in communication_services_search_words):
+                return "Услуги связи и Интернет"
+            elif any(search_word.lower() in (comment_string.lower() or counterparty_string.lower())
+                     for search_word in fuel_search_words):
+                return "Топливо"
+            elif any(search_word.lower() in (comment_string.lower() or counterparty_string.lower())
+                     for search_word in customs_payments_search_words):
+                return "Таможенные платежи"
+            elif any(search_word.lower() in counterparty_string.lower() for search_word in delivery_to_moscow_search_words):
+                return "Доставка до МСК"
+            elif any(search_word.lower() in (comment_string.lower() or counterparty_string.lower())
+                     for search_word in express_delivery_search_words):
+                return "Курьерская доставка"
+            elif any(search_word.lower() in counterparty_string.lower() for search_word in yandex_search_words):
+                return "Я.Маркет"
+            elif any(search_word.lower() in counterparty_string.lower() for search_word in ozon_search_words):
+                return "Ozon"
+            elif any(search_word.lower() in counterparty_string.lower() for search_word in sbermarket_search_words):
+                return "Сбермаркет"
+            elif any(search_word.lower() in counterparty_string.lower() for search_word in fraht_search_words):
+                return "Фрахт"  # ООО СМАРТЛОГИСТЕР не только фрахт, но и может быть Таможенные платежи
             else:
                 return ""
         else:
@@ -287,7 +365,7 @@ class MainScreen(MDScreen):
         income_checking_account = self.get_income_checking_account()  # РасчСчет
         data_to_upload = self.get_data_to_upload(required_values, income_checking_account)
         if data_to_upload:  # Проверяем не пустой ли файл
-            worksheet.update(f"A{self.next_available_row(worksheet)}:{chr(ord('A')-1+len(data_to_upload[0]))}"
+            worksheet.update(f"A{self.next_available_row(worksheet)}:{chr(ord('A') - 1 + len(data_to_upload[0]))}"
                              f"{self.next_available_row(worksheet) + len(data_to_upload)}", data_to_upload)
             # chr(ord('A')-1+len(data_to_upload[0])) - буква алфавита по номеру начиная с заглавной A
         else:
@@ -296,9 +374,9 @@ class MainScreen(MDScreen):
             if not self.data_error_snackbar:
                 app = BankStatementsApp.get_running_app()
                 self.data_error_snackbar = Snackbar(text="Выбранный файл отсутствует или недействителен!",
-                                                 font_size=app.font_size_value,
-                                                 duration=3, size_hint_x=0.8,
-                                                 pos_hint={"center_x": 0.5, "center_y": 0.1})
+                                                    font_size=app.font_size_value,
+                                                    duration=3, size_hint_x=0.8,
+                                                    pos_hint={"center_x": 0.5, "center_y": 0.1})
             self.data_error_snackbar.open()
 
 
@@ -307,5 +385,6 @@ class BankStatementsApp(MDApp):
 
     def build(self):
         return MainScreen()
+
 
 BankStatementsApp().run()
