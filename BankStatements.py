@@ -13,11 +13,12 @@ starting_directory = "/home/anton/Загрузки/Telegram Desktop"
 ooo_search_words = ["ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО"]
 ip_search_words = ["ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ", "ИП"]
 rate_search_words = ["курс", "Курс сделки", "курс ЦБ"]
-banking_services_search_words = ["Комиссия", "Ком-я"]
+banking_services_search_words = ["Комиссия", "Ком-я", "Выплата начисленных процентов"]
 internal_movements_search_words = ["Перевод собственных денежных средств",
                                    "Перевод средств с расчетного счета на счет 'налоговая копилка'",
                                    "Возврат средств по договору займа от учредителя",
                                    "Перевод на свою карту физ лица", "перевод на собственную карту",
+                                   "перевод собственных средств",
                                    ]
 communication_services_search_words = ["Билайн", "beeline", "МОРТОН ТЕЛЕКОМ", "КАНТРИКОМ"]
 fuel_search_words = ["GAZPROMNEFT", "LUKOIL.AZS", "RNAZK ROSNEFT", "Газпромнефть",
@@ -25,15 +26,17 @@ fuel_search_words = ["GAZPROMNEFT", "LUKOIL.AZS", "RNAZK ROSNEFT", "Газпро
 yandex_search_words = ["ЯНДЕКС"]
 ozon_search_words = ["ООО ИНТЕРНЕТ РЕШЕНИЯ"]
 sbermarket_search_words = ['"МАРКЕТПЛЕЙС"', "ПАО Сбербанк"]
-fraht_search_words = ["ООО СМАРТЛОГИСТЕР"]
+fraht_search_words = ["СМАРТЛОГИСТЕР"]
 customs_payments_search_words = ["ФЕДЕРАЛЬНАЯ ТАМОЖЕННАЯ СЛУЖБА", "таможенного", "ТД"]
 express_delivery_search_words = ["АВТОФЛОТ-СТОЛИЦА", "Деловые Линии", "Достависта",
                                  "доставки", "доставка", "грузоперевозки", "грузоперевозка", "перевозки", "перевозка"]
 delivery_to_moscow_search_words = ["SHEREMETEVO-KARGO", "АВРОРА-М", "Байкал-Сервис ТК"]
-
+accounting_search_words = ["бухгалтерских", "ДК-КОНСАЛТ"]
 alpha_bank_search_words = ["АЛЬФА-БАНК"]
 modul_bank_search_words = ["МОДУЛЬБАНК"]
 
+abbreviations = {"ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ": "ООО", "МОСКОВСКИЙ ФИЛИАЛ АО КБ": "АО",
+                 "СОЛДАТОВ АЛЕКСАНДР ИГОРЕВИЧ": "Солдатов А.И.", "ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ": "ИП"}
 
 class MainScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -218,6 +221,8 @@ class MainScreen(MDScreen):
 
         comment_index = 8
         sum_index = 5
+
+        '''
         # recipient_index = 4
 
         # Тип оплаты (ПолучательБанк1/ПлательщикБанк1)
@@ -243,6 +248,7 @@ class MainScreen(MDScreen):
             payment_type = f'{payment_type_legal_entity} Модульбанк'
         else:
             payment_type = f'{payment_type_legal_entity} {values[bank_name_type_index]}'
+        '''
 
         # Юр лицо (Получатель1/Плательщик1)
         if any(search_word.lower() in values[legal_entity_index].lower() for search_word in ooo_search_words):
@@ -254,6 +260,14 @@ class MainScreen(MDScreen):
         else:
             legal_entity = ""
             print("Ошибка в Юр лице")
+
+        if any(search_word.lower() in values[bank_name_type_index].lower() for search_word in alpha_bank_search_words):
+            payment_type = f'{legal_entity} Альфа'
+        elif any(
+                search_word.lower() in values[bank_name_type_index].lower() for search_word in modul_bank_search_words):
+            payment_type = f'{legal_entity} Модульбанк'
+        else:
+            payment_type = f'{legal_entity} {values[bank_name_type_index]}'
 
         article = self.get_article(values[comment_index], values[counterparty_index])  # Статья
 
@@ -277,19 +291,27 @@ class MainScreen(MDScreen):
             outcome = str(values[sum_index]).replace(".", ",")  # Отток
 
         counterparty = values[counterparty_index]  # Контрагент (Плательщик1/Получатель1)
-        '''
+
         # Сокращаем Юр лица
-        if "OБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ" in counterparty.upper():
-            counterparty.upper().replace("OБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО")
-        elif "МОСКОВСКИЙ ФИЛИАЛ АО КБ" in counterparty.upper():
-            counterparty.upper().replace("МОСКОВСКИЙ ФИЛИАЛ АО КБ", "АО")
-        elif "СОЛДАТОВ АЛЕКСАНДР ИГОРЕВИЧ" in counterparty.upper():
-            counterparty.upper().replace("СОЛДАТОВ АЛЕКСАНДР ИГОРЕВИЧ", "Солдатов А.И.")
-        elif "ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ" in counterparty.upper():
-            counterparty.upper().replace("ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ", "ИП")
-        '''
+        abbreviated_counterparty = None
+        for full, abbreviated in abbreviations.items():
+            if not abbreviated_counterparty:
+                abbreviated_counterparty = self.counterparty_case_insensitive_replace(counterparty, full, abbreviated)
+
+        # Присваеваем сокращенное значение, если сокращение нашлось
+        if abbreviated_counterparty:
+            counterparty = abbreviated_counterparty
 
         return payment_type, legal_entity, article, amount_in_cny, cny_exchange_rate, income, outcome, counterparty
+
+    # Заменяем юр лица в строке независимо от заглавных или маленьких букв
+    @staticmethod
+    def counterparty_case_insensitive_replace(counterparty_string, string_to_replace, replacement_string):
+        if counterparty_string:
+            if string_to_replace.upper() in counterparty_string.upper():
+                start_index = counterparty_string.upper().find(string_to_replace.upper())
+                end_index = start_index + len(string_to_replace)
+                return counterparty_string[:start_index] + replacement_string + counterparty_string[end_index:]
 
     @staticmethod
     def get_cny_exchange_rate_and_amount_in_cny(comment_string, amount_in_rub, rate_search_words_index):
@@ -315,27 +337,31 @@ class MainScreen(MDScreen):
     # Получение статьи через поисковые слова в комментариях или контрагенте
     @staticmethod
     def get_article(comment_string, counterparty_string):
-        if comment_string:
+        if comment_string or counterparty_string:
             if any(search_word.lower() in comment_string.lower() for search_word in banking_services_search_words):
                 return "Банковское обслуживание и комиссии"
             elif any(search_word.lower() in comment_string.lower() for search_word in rate_search_words):
                 return "Обмен валют"
             elif any(search_word.lower() in comment_string.lower() for search_word in internal_movements_search_words):
                 return "Внутренние перемещения"
-            elif any(search_word.lower() in (comment_string.lower() or counterparty_string.lower())
+            elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
                      for search_word in communication_services_search_words):
                 return "Услуги связи и Интернет"
-            elif any(search_word.lower() in (comment_string.lower() or counterparty_string.lower())
+            elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
                      for search_word in fuel_search_words):
                 return "Топливо"
-            elif any(search_word.lower() in (comment_string.lower() or counterparty_string.lower())
+            elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
                      for search_word in customs_payments_search_words):
                 return "Таможенные платежи"
-            elif any(search_word.lower() in counterparty_string.lower() for search_word in delivery_to_moscow_search_words):
+            elif any(search_word.lower() in counterparty_string.lower()
+                     for search_word in delivery_to_moscow_search_words):
                 return "Доставка до МСК"
-            elif any(search_word.lower() in (comment_string.lower() or counterparty_string.lower())
+            elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
                      for search_word in express_delivery_search_words):
                 return "Курьерская доставка"
+            elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
+                     for search_word in accounting_search_words):
+                return "Бухгалтерия"
             elif any(search_word.lower() in counterparty_string.lower() for search_word in yandex_search_words):
                 return "Я.Маркет"
             elif any(search_word.lower() in counterparty_string.lower() for search_word in ozon_search_words):
