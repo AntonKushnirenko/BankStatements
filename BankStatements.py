@@ -10,6 +10,7 @@ service_account_filename = "service_account.json"
 worksheet_name = "Лист1"  # Название листа (страницы), которое выбирается снизу таблицы.
 starting_directory = "/home/anton/Загрузки/Telegram Desktop"
 
+# Поисковые слова
 ooo_search_words = ["ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО"]
 ip_search_words = ["ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ", "ИП"]
 rate_search_words = ["курс", "Курс сделки", "курс ЦБ"]
@@ -32,9 +33,11 @@ express_delivery_search_words = ["АВТОФЛОТ-СТОЛИЦА", "Делов�
                                  "доставки", "доставка", "грузоперевозки", "грузоперевозка", "перевозки", "перевозка"]
 delivery_to_moscow_search_words = ["SHEREMETEVO-KARGO", "АВРОРА-М", "Байкал-Сервис ТК"]
 accounting_search_words = ["бухгалтерских", "ДК-КОНСАЛТ"]
+purchase_of_product_search_words = ["Флекс"]
 alpha_bank_search_words = ["АЛЬФА-БАНК"]
 modul_bank_search_words = ["МОДУЛЬБАНК"]
 
+# Сокращения
 abbreviations = {"ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ": "ООО", "МОСКОВСКИЙ ФИЛИАЛ АО КБ": "АО",
                  "СОЛДАТОВ АЛЕКСАНДР ИГОРЕВИЧ": "Солдатов А.И.", "ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ": "ИП"}
 
@@ -261,6 +264,7 @@ class MainScreen(MDScreen):
             legal_entity = ""
             print("Ошибка в Юр лице")
 
+        # Сокращение строк с названиями банков
         if any(search_word.lower() in values[bank_name_type_index].lower() for search_word in alpha_bank_search_words):
             payment_type = f'{legal_entity} Альфа'
         elif any(
@@ -269,7 +273,7 @@ class MainScreen(MDScreen):
         else:
             payment_type = f'{legal_entity} {values[bank_name_type_index]}'
 
-        article = self.get_article(values[comment_index], values[counterparty_index])  # Статья
+        article = self.get_article(values[comment_index], values[counterparty_index], is_income)  # Статья
 
         # Курс CNY и Сумма в CNY
         cny_exchange_rate = ""
@@ -313,6 +317,7 @@ class MainScreen(MDScreen):
                 end_index = start_index + len(string_to_replace)
                 return counterparty_string[:start_index] + replacement_string + counterparty_string[end_index:]
 
+    # Получаем курс юаней и сумму в юанях
     @staticmethod
     def get_cny_exchange_rate_and_amount_in_cny(comment_string, amount_in_rub, rate_search_words_index):
         # Находим конец слов "Курс сделки " или "курс ЦБ "
@@ -336,7 +341,7 @@ class MainScreen(MDScreen):
 
     # Получение статьи через поисковые слова в комментариях или контрагенте
     @staticmethod
-    def get_article(comment_string, counterparty_string):
+    def get_article(comment_string, counterparty_string, is_income):
         if comment_string or counterparty_string:
             if any(search_word.lower() in comment_string.lower() for search_word in banking_services_search_words):
                 return "Банковское обслуживание и комиссии"
@@ -362,6 +367,12 @@ class MainScreen(MDScreen):
             elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
                      for search_word in accounting_search_words):
                 return "Бухгалтерия"
+            elif any(search_word.lower() in counterparty_string.lower()
+                     for search_word in purchase_of_product_search_words):
+                if is_income:
+                    return "Оптовые продажи"
+                elif not is_income:
+                    return "Закупка товара"
             elif any(search_word.lower() in counterparty_string.lower() for search_word in yandex_search_words):
                 return "Я.Маркет"
             elif any(search_word.lower() in counterparty_string.lower() for search_word in ozon_search_words):
@@ -405,12 +416,10 @@ class MainScreen(MDScreen):
                                                     pos_hint={"center_x": 0.5, "center_y": 0.1})
             self.data_error_snackbar.open()
 
-
 class BankStatementsApp(MDApp):
     font_size_value = "24sp"  # Размер шрифта
 
     def build(self):
         return MainScreen()
-
 
 BankStatementsApp().run()
