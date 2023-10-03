@@ -33,7 +33,16 @@ express_delivery_search_words = ["АВТОФЛОТ-СТОЛИЦА", "Делов�
                                  "доставки", "доставка", "грузоперевозки", "грузоперевозка", "перевозки", "перевозка"]
 delivery_to_moscow_search_words = ["SHEREMETEVO-KARGO", "АВРОРА-М", "Байкал-Сервис ТК"]
 accounting_search_words = ["бухгалтерских", "ДК-КОНСАЛТ"]
-purchase_of_product_search_words = ["Флекс"]
+purchase_or_sale_search_words = ["за стяжки", "За кабельные",
+                                 "Флекс", "Мегуна", "19 ДЮЙМОВ", "СВЯЗЬГАРАНТ", "Техтранссервис", "ВИССАМ",
+                                 "СДС", "ВЕНЗА", "ФРЕШТЕЛ-МОСКВА", "Васильева", "СИАЙГРУПП", "МВМ", "КОНТУР-ПАК",
+                                 "ЧИНЕЙКИНА", "ШАРАЕВА"]
+taxes_osno_search_words = ["Казначейство России (ФНС России)", "УФК"]
+warehouse_rent_search_words = ["Жилин", "Нагоркин"]
+salary_fixed_search_words = ["заработная плата"]
+loan_interest_repayment_search_words = ["Погашение просроч. процентов", "Оплата штрафа за проср. основной долг",
+                                        "Оплата штрафа за проср. проценты", "просроч.", "проср."]
+other_search_words = ["ЖИВОЙ"]
 alpha_bank_search_words = ["АЛЬФА-БАНК"]
 modul_bank_search_words = ["МОДУЛЬБАНК"]
 
@@ -126,6 +135,14 @@ class MainScreen(MDScreen):
                     date = line.replace('Дата=', "")
                     dates.append(date)
 
+                # Если ДатаСписано позже Дата, берется ДатаСписано
+                if line.startswith('ДатаСписано='):
+                    date_write_off = line.replace('ДатаСписано=', "")
+                    if date_write_off != "":
+                        if dates:
+                            if dates[-1] != date_write_off:
+                                dates[-1] = date_write_off
+
                 if line.startswith('ПолучательБанк1='):
                     beneficiary_bank = line.replace('ПолучательБанк1=', "")
                     beneficiary_banks.append(beneficiary_bank)
@@ -192,8 +209,8 @@ class MainScreen(MDScreen):
             # Эти значения я пока не понял как получать
             accrual_date = ""  # Дата начисления. Используется при налогах (страхование)
             nds = ""  # НДС
-            project = ""  # Проект
 
+            project = ""  # Проект
             comment = values[8]  # Комментарий
 
             payment_type, legal_entity, article, amount_in_cny, cny_exchange_rate, income, outcome, counterparty = self.get_values_depending_on_income_or_outcome(
@@ -273,6 +290,10 @@ class MainScreen(MDScreen):
         else:
             payment_type = f'{legal_entity} {values[bank_name_type_index]}'
 
+        # Проверка на тип отплаты "Налоговая копилка"
+        if self.is_tax_piggy_bank(values[comment_index], is_income):
+            payment_type = "Налоговая копилка"
+
         article = self.get_article(values[comment_index], values[counterparty_index], is_income)  # Статья
 
         # Курс CNY и Сумма в CNY
@@ -316,6 +337,13 @@ class MainScreen(MDScreen):
                 start_index = counterparty_string.upper().find(string_to_replace.upper())
                 end_index = start_index + len(string_to_replace)
                 return counterparty_string[:start_index] + replacement_string + counterparty_string[end_index:]
+
+    # Проверка на тип отплаты "Налоговая копилка"
+    @staticmethod
+    def is_tax_piggy_bank(comment_string, is_income):
+        if "налоговая копилка" in comment_string.lower() and is_income:
+        # Если есть фраза 'налоговая копилка' в комментарии и идет приток денег
+            return True
 
     # Получаем курс юаней и сумму в юанях
     @staticmethod
@@ -367,12 +395,20 @@ class MainScreen(MDScreen):
             elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
                      for search_word in accounting_search_words):
                 return "Бухгалтерия"
-            elif any(search_word.lower() in counterparty_string.lower()
-                     for search_word in purchase_of_product_search_words):
+            elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
+                     for search_word in purchase_or_sale_search_words):
                 if is_income:
                     return "Оптовые продажи"
                 elif not is_income:
                     return "Закупка товара"
+            elif any(search_word.lower() in counterparty_string.lower() for search_word in taxes_osno_search_words):
+                return "Налоги ОСНО"
+            elif any(search_word.lower() in counterparty_string.lower() for search_word in warehouse_rent_search_words):
+                return "Аренда склада"
+            elif any(search_word.lower() in comment_string.lower() for search_word in salary_fixed_search_words):
+                return "Зарплата - фикс"
+            elif any(search_word.lower() in comment_string.lower() for search_word in loan_interest_repayment_search_words):
+                return "Погашение процентов по кредиту"
             elif any(search_word.lower() in counterparty_string.lower() for search_word in yandex_search_words):
                 return "Я.Маркет"
             elif any(search_word.lower() in counterparty_string.lower() for search_word in ozon_search_words):
@@ -381,6 +417,8 @@ class MainScreen(MDScreen):
                 return "Сбермаркет"
             elif any(search_word.lower() in counterparty_string.lower() for search_word in fraht_search_words):
                 return "Фрахт"  # ООО СМАРТЛОГИСТЕР не только фрахт, но и может быть Таможенные платежи
+            elif any(search_word.lower() in counterparty_string.lower() for search_word in other_search_words):
+                return "Прочее"
             else:
                 return ""
         else:
