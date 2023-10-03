@@ -1,9 +1,20 @@
 from kivymd.app import MDApp
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.screen import MDScreen
-from kivymd.uix.label import MDLabel
 from kivymd.uix.snackbar import Snackbar
+from kivy.config import Config
 import gspread
+import os
+
+# Устанавливаем размер и конфигурацию окна
+Config.set('graphics', 'resizable', False)
+Config.set('graphics', 'width', '500')
+Config.set('graphics', 'height', '500')
+
+# Временно
+from kivy.core.window import Window
+Window.size = (770, 577.5)
+
 
 google_sheet_name = "Выписки"
 service_account_filename = "service_account.json"
@@ -73,13 +84,16 @@ class MainScreen(MDScreen):
             # Читаем содержимое
             with open(path, "r", encoding='Windows-1251') as file:
                 self.lines = file.read().splitlines()
+                file_name = os.path.basename(path)
+                # Меняем текст на кнопке выбора файла на имя выбранного файла
                 if not self.selected_file_label:
-                    self.selected_file_label = MDLabel(text=f"Выбран файл: {path}", halign='center',
-                                                       pos_hint={"center_x": 0.5, "center_y": 0.45},
-                                                       font_style="H5")
-                    self.add_widget(self.selected_file_label)
+                    self.ids.select_a_file_btn.text = f"[color=#4b4b4b]{file_name}[/color]"
+                    self.ids.select_a_file_btn.background_normal = 'select_a_file_normal_blank.png'
+                    self.ids.select_a_file_btn.background_down = 'select_a_file_down_blank.png'
                 elif self.selected_file_label:
-                    self.selected_file_label.text = f"Выбран файл: {path}"
+                    self.ids.select_a_file_btn.text = f"[color=#4b4b4b]{file_name}[/color]"
+                    self.ids.select_a_file_btn.background_normal = 'select_a_file_normal_blank.png'
+                    self.ids.select_a_file_btn.background_down = 'select_a_file_down_blank.png'
                 self.exit_manager(self)
         else:
             # Вылезающее уведомление с ошибкой формата файла снизу
@@ -455,7 +469,7 @@ class MainScreen(MDScreen):
             self.data_error_snackbar.open()
 
 class BankStatementsApp(MDApp):
-    font_size_value = "24sp"  # Размер шрифта
+    font_size_value = "25sp"  # Размер шрифта
 
     def build(self):
         return MainScreen()

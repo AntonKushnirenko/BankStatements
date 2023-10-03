@@ -1,25 +1,26 @@
 <MainScreen>
     MDScreen:
-        # Верхняя панель с названием приложения
-        MDTopAppBar:
-            title: 'Выгрузка банковских выписок в Google Таблицу "АРТЕЛЬ/ФИНАНСЫ"'
-            pos_hint: {"top": 1}
-            elevation: 4
-
         # Кнопка выбора файла, по нажатию которой открывается файловый менеджер
-        MDRaisedButton
-            text: "Выбрать файл"
+        Button:
+            id: select_a_file_btn
+            text_size: self.width*0.8, None
+            halign: 'center'
+            markup: True
+            background_normal: 'select_a_file_normal.png'
+            background_down: 'select_a_file_down.png'
             pos_hint: {'center_x': 0.5, 'center_y': 0.61}
             font_size: app.font_size_value
-            size_hint: 0.66, 0.1
+            size_hint: 0.66, 0.33
             on_release:
                 root.open_file_manager()
 
-        # Кнопка Выгрузки файла в Google Таблицу
-        MDRaisedButton
-            text: "Выгрузить в Google Таблицу"
-            pos_hint: {'center_x': 0.5, 'center_y': 0.28}
+        # Кнопка выгрузки файла в Google Таблицу
+        Button:
+            background_normal: 'upload_to_google_normal.png'
+            background_down: 'upload_to_google_down.png'
+            pos_hint: {'center_x': 0.5, 'center_y': 0.32}
             font_size: app.font_size_value
-            size_hint: 0.66, 0.1
+            size_hint: 0.66, 0.18
             on_release:
                 root.upload_to_googledrive()
+
