@@ -1,13 +1,32 @@
 <MainScreen>
     MDScreen:
-        # Кнопка выбора файла, по нажатию которой открывается файловый менеджер
+        # Старая kivy кнопка под новой kivyMD кнопкой (у старой кнопки правильный перенос строки текста, а у новой красивый дизайн)
         Button:
             id: select_a_file_btn
+            text: '[color=#696969]Выбрать файл[/color]'
             text_size: self.width*0.8, None
             halign: 'center'
             markup: True
-            background_normal: app.resource_path('select_a_file_normal.png')
-            background_down: app.resource_path('select_a_file_down.png')
+            background_color: 0, 0, 0, 0
+            pos_hint: {'center_x': 0.5, 'center_y': 0.61}
+            font_size: app.font_size_value
+            size_hint: 0.66, 0.33
+            opacity: 0
+            disabled: True
+            on_release:
+                root.open_file_manager()
+
+        # Кнопка выбора файла, по нажатию которой открывается файловый менеджер (kivyMD)
+        MDRectangleFlatIconButton:
+            id: select_a_file_mdbtn
+            text: 'Выбрать файл'
+            #text_size: self.width*0.8, None
+            halign: 'center'
+            markup: True
+            icon: 'file-outline'
+            line_color: "gray"
+            text_color: "gray"
+            icon_color: "gray"
             pos_hint: {'center_x': 0.5, 'center_y': 0.61}
             font_size: app.font_size_value
             size_hint: 0.66, 0.33
@@ -15,9 +34,19 @@
                 root.open_file_manager()
 
         # Кнопка выгрузки файла в Google Таблицу
-        Button:
-            background_normal: app.resource_path('upload_to_google_normal.png')
-            background_down: app.resource_path('upload_to_google_down.png')
+        MDRectangleFlatIconButton:
+            id: upload_a_file_btn
+            text: 'Выгрузить в Google Таблицу'
+            text_size: self.width*0.8, None
+            halign: 'center'
+            markup: True
+            icon: 'export'
+            md_bg_color: (0, .7, 0.35, 1)
+            line_color: (0, .7, 0.35, 1)
+            text_color: "white"
+            icon_color: "white"
+            disabled_color: "gray"
+            disabled: True
             pos_hint: {'center_x': 0.5, 'center_y': 0.32}
             font_size: app.font_size_value
             size_hint: 0.66, 0.18

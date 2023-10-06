@@ -5,17 +5,16 @@ from kivymd.uix.snackbar import Snackbar
 import gspread
 import os
 
-# Устанавливаем размер и конфигурацию окна (обязательно в начале)
-from kivy.config import Config
-Config.set('graphics', 'resizable', 0)
-#Config.set('kivy','window_icon','artel_icon.png')
+# Устанавливаем размер окна
 from kivy.core.window import Window
-Window.size = (770, 577.5)
+window_size = (700, 525)
+Window.size = window_size
+# Чтобы окно нельзя было уменьшить слишком сильно
+Window.minimum_width, Window.minimum_height = window_size
 
 # Для создания exe файла
 import sys
 from kivy.resources import resource_add_path
-#from kivymd.icon_definitions import md_icons
 
 google_sheet_name = "Выписки"
 service_account_filename = "service_account.json"
@@ -68,9 +67,9 @@ class MainScreen(MDScreen):
         self.manager_open = False
         self.file_manager = MDFileManager(exit_manager=self.exit_manager, select_path=self.select_path)
         self.lines = []  # Строки текстового файла
-        self.selected_file_label = None
         self.not_txt_snackbar = None
         self.data_error_snackbar = None
+        self.is_file_selected = False
 
     # Выбор файла
     def open_file_manager(self):
@@ -86,15 +85,20 @@ class MainScreen(MDScreen):
             with open(path, "r", encoding='Windows-1251') as file:
                 self.lines = file.read().splitlines()
                 file_name = os.path.basename(path)
+
+                # Скрываем текст kivymd кнопки и показываем текст kivy кнопки (он правильно переносит строки)
+                if not self.is_file_selected:
+                    self.ids.select_a_file_mdbtn.icon = ''
+                    self.ids.select_a_file_mdbtn.text = ''
+                    self.ids.select_a_file_btn.opacity = 1
+                    self.is_file_selected = True
+
+                    # Включаем кнопку выгрузки файла в Google Таблицу
+                    self.ids.upload_a_file_btn.disabled = False
+
                 # Меняем текст на кнопке выбора файла на имя выбранного файла
-                if not self.selected_file_label:
-                    self.ids.select_a_file_btn.text = f"[color=#4b4b4b]{file_name}[/color]"
-                    self.ids.select_a_file_btn.background_normal = BankStatementsApp.resource_path('select_a_file_normal_blank.png')
-                    self.ids.select_a_file_btn.background_down = BankStatementsApp.resource_path('select_a_file_down_blank.png')
-                elif self.selected_file_label:
-                    self.ids.select_a_file_btn.text = f"[color=#4b4b4b]{file_name}[/color]"
-                    self.ids.select_a_file_btn.background_normal = BankStatementsApp.resource_path('select_a_file_normal_blank.png')
-                    self.ids.select_a_file_btn.background_down = BankStatementsApp.resource_path('select_a_file_down_blank.png')
+                self.ids.select_a_file_btn.text = f"[color=#696969]{file_name}[/color]"
+
                 self.exit_manager(self)
         else:
             # Вылезающее уведомление с ошибкой формата файла снизу
@@ -108,7 +112,6 @@ class MainScreen(MDScreen):
     # Проверяем текстовый ли файл
     @staticmethod
     def is_txt(path):
-        # if path.endswith(('.txt', '.doc', '.docx', '.odt')):
         if path.endswith('.txt'):
             return True
         else:
@@ -470,7 +473,7 @@ class MainScreen(MDScreen):
             self.data_error_snackbar.open()
 
 class BankStatementsApp(MDApp):
-    font_size_value = "25sp"  # Размер шрифта
+    font_size_value = "25dp"  # Размер шрифта
 
     def build(self):
         # Устанавливаем название и иконку окна приложения

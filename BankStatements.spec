@@ -10,7 +10,7 @@ a = Analysis(
     ['BankStatements.py'],
     pathex=[],
     binaries=[],
-    datas=[('bankstatements.kv', '.'), ('select_a_file_down.png', '.'), ('select_a_file_down_blank.png', '.'), ('select_a_file_normal.png', '.'), ('select_a_file_normal_blank.png', '.'), ('service_account.json', '.'), ('upload_to_google_disabled.png', '.'), ('upload_to_google_down.png', '.'), ('upload_to_google_normal.png', '.'), ('artel_icon.png', '.')],
+    datas=[('bankstatements.kv', '.'), ('service_account.json', '.'), ('artel_icon.png', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -22,13 +22,6 @@ a = Analysis(
     noarchive=True,
 )
 
-a.datas += [('files/select_a_file_down.png', 'C:\\Users\\anton\\Desktop\\bankstatements\\select_a_file_down.png', 'DATA')]
-a.datas += [('files/select_a_file_down_blank.png', 'C:\\Users\\anton\\Desktop\\bankstatements\\select_a_file_down_blank.png', 'DATA')]
-a.datas += [('files/select_a_file_normal.png', 'C:\\Users\\anton\\Desktop\\bankstatements\\select_a_file_normal.png', 'DATA')]
-a.datas += [('files/select_a_file_normal_blank.png', 'C:\\Users\\anton\\Desktop\\bankstatements\\select_a_file_normal_blank.png', 'DATA')]
-a.datas += [('files/upload_to_google_disabled.png', 'C:\\Users\\anton\\Desktop\\bankstatements\\upload_to_google_disabled.png', 'DATA')]
-a.datas += [('files/upload_to_google_down.png', 'C:\\Users\\anton\\Desktop\\bankstatements\\upload_to_google_down.png', 'DATA')]
-a.datas += [('files/upload_to_google_normal.png', 'C:\\Users\\anton\\Desktop\\bankstatements\\upload_to_google_normal.png', 'DATA')]
 a.datas += [('files/artel_icon.png', 'C:\\Users\\anton\\Desktop\\bankstatements\\artel_icon.png', 'DATA')]
 a.datas += [('files/service_account.json', 'C:\\Users\\anton\\Desktop\\bankstatements\\service_account.json', 'DATA')]
 a.datas += [('files/bankstatements.kv', 'C:\\Users\\anton\\Desktop\\bankstatements\\bankstatements.kv', 'DATA')]
