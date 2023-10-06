@@ -2,24 +2,25 @@ from kivymd.app import MDApp
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.snackbar import Snackbar
-from kivy.config import Config
 import gspread
 import os
 
-# Устанавливаем размер и конфигурацию окна
-Config.set('graphics', 'resizable', False)
-Config.set('graphics', 'width', '500')
-Config.set('graphics', 'height', '500')
-
-# Временно
+# Устанавливаем размер и конфигурацию окна (обязательно в начале)
+from kivy.config import Config
+Config.set('graphics', 'resizable', 0)
+#Config.set('kivy','window_icon','artel_icon.png')
 from kivy.core.window import Window
 Window.size = (770, 577.5)
 
+# Для создания exe файла
+import sys
+from kivy.resources import resource_add_path
+#from kivymd.icon_definitions import md_icons
 
 google_sheet_name = "Выписки"
 service_account_filename = "service_account.json"
 worksheet_name = "Лист1"  # Название листа (страницы), которое выбирается снизу таблицы.
-starting_directory = "/home/anton/Загрузки/Telegram Desktop"
+starting_directory = "/"
 
 # Поисковые слова
 ooo_search_words = ["ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО"]
@@ -88,12 +89,12 @@ class MainScreen(MDScreen):
                 # Меняем текст на кнопке выбора файла на имя выбранного файла
                 if not self.selected_file_label:
                     self.ids.select_a_file_btn.text = f"[color=#4b4b4b]{file_name}[/color]"
-                    self.ids.select_a_file_btn.background_normal = 'select_a_file_normal_blank.png'
-                    self.ids.select_a_file_btn.background_down = 'select_a_file_down_blank.png'
+                    self.ids.select_a_file_btn.background_normal = BankStatementsApp.resource_path('select_a_file_normal_blank.png')
+                    self.ids.select_a_file_btn.background_down = BankStatementsApp.resource_path('select_a_file_down_blank.png')
                 elif self.selected_file_label:
                     self.ids.select_a_file_btn.text = f"[color=#4b4b4b]{file_name}[/color]"
-                    self.ids.select_a_file_btn.background_normal = 'select_a_file_normal_blank.png'
-                    self.ids.select_a_file_btn.background_down = 'select_a_file_down_blank.png'
+                    self.ids.select_a_file_btn.background_normal = BankStatementsApp.resource_path('select_a_file_normal_blank.png')
+                    self.ids.select_a_file_btn.background_down = BankStatementsApp.resource_path('select_a_file_down_blank.png')
                 self.exit_manager(self)
         else:
             # Вылезающее уведомление с ошибкой формата файла снизу
@@ -446,7 +447,7 @@ class MainScreen(MDScreen):
 
     # Работа с гугл таблицами
     def upload_to_googledrive(self):
-        service_account = gspread.service_account(filename=service_account_filename)
+        service_account = gspread.service_account(filename=BankStatementsApp.resource_path(service_account_filename))
         spreadsheet = service_account.open(google_sheet_name)
         worksheet = spreadsheet.worksheet(worksheet_name)
 
@@ -472,6 +473,21 @@ class BankStatementsApp(MDApp):
     font_size_value = "25sp"  # Размер шрифта
 
     def build(self):
+        # Устанавливаем название и иконку окна приложения
+        self.title = 'Выгрузка банковских выписок в Google Таблицу "АРТЕЛЬ/ФИНАНСЫ"'
+        self.icon = self.resource_path('artel_icon.png')
         return MainScreen()
+
+    # Для создания exe файла
+    # Функция возвращает путь к файлам, чтобы в exe отображались картинки и находился файл service_account.json
+    @staticmethod
+    def resource_path(relative_path):
+        # returns an absolute path
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            # derive the absolute path of the relative_path
+            base_path = os.path.abspath('.')
+        return os.path.join(base_path, relative_path)
 
 BankStatementsApp().run()
