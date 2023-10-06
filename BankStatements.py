@@ -473,7 +473,7 @@ class MainScreen(MDScreen):
             self.data_error_snackbar.open()
 
 class BankStatementsApp(MDApp):
-    font_size_value = "25dp"  # Размер шрифта
+    font_size_value = "25sp"  # Размер шрифта
 
     def build(self):
         # Устанавливаем название и иконку окна приложения
