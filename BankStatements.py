@@ -153,13 +153,15 @@ class MainScreen(MDScreen):
                     date = line.replace('Дата=', "")
                     dates.append(date)
 
-                # Если ДатаСписано позже Дата, берется ДатаСписано
+                # Если ДатаСписано или ДатаПоступило позже Дата, берется ДатаСписано или ДатаПоступило
                 if line.startswith('ДатаСписано='):
-                    date_write_off = line.replace('ДатаСписано=', "")
-                    if date_write_off != "":
+                    date_write_off_or_received = line.replace('ДатаСписано=', "")
+                elif line.startswith('ДатаПоступило='):
+                    date_write_off_or_received = line.replace('ДатаПоступило=', "")
+                    if date_write_off_or_received != "":
                         if dates:
-                            if dates[-1] != date_write_off:
-                                dates[-1] = date_write_off
+                            if dates[-1] != date_write_off_or_received:
+                                dates[-1] = date_write_off_or_received
 
                 if line.startswith('ПолучательБанк1='):
                     beneficiary_bank = line.replace('ПолучательБанк1=', "")
