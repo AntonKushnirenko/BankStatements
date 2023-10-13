@@ -347,6 +347,11 @@ class MainScreen(MDScreen):
         if abbreviated_counterparty:
             counterparty = abbreviated_counterparty
 
+        # Если изначально у контрагента было "(ИП)" - ставим "ИП" в начало
+        if "(ИП)" in counterparty:
+            counterparty = counterparty.replace("(ИП)", "")
+            counterparty = "ИП " + counterparty
+
         return payment_type, legal_entity, article, amount_in_cny, cny_exchange_rate, income, outcome, counterparty
 
     # Заменяем юр лица в строке независимо от заглавных или маленьких букв
