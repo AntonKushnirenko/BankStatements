@@ -4,6 +4,7 @@ from kivymd.uix.screen import MDScreen
 from kivymd.uix.snackbar import Snackbar
 import gspread
 import os
+from PyPDF2 import PdfReader
 
 # Устанавливаем размер окна
 from kivy.core.window import Window
@@ -70,6 +71,7 @@ class MainScreen(MDScreen):
         self.not_txt_snackbar = None
         self.data_error_snackbar = None
         self.is_file_selected = False
+        self.format = None
 
     # Выбор файла
     def open_file_manager(self):
@@ -80,26 +82,38 @@ class MainScreen(MDScreen):
         print("Путь: ", path)
         app = BankStatementsApp.get_running_app()
         # Проверяем текстовый ли файл
-        if self.is_txt(path):
-            # Читаем содержимое
-            with open(path, "r", encoding='Windows-1251') as file:
-                self.lines = file.read().splitlines()
-                file_name = os.path.basename(path)
+        if self.is_text(path):
+            self.lines = [] # Очищаем строки предыдущего текстового файла
+            self.format = None
+            file_name = os.path.basename(path)
 
-                # Скрываем текст kivymd кнопки и показываем текст kivy кнопки (он правильно переносит строки)
-                if not self.is_file_selected:
-                    self.ids.select_a_file_mdbtn.icon = ''
-                    self.ids.select_a_file_mdbtn.text = ''
-                    self.ids.select_a_file_btn.opacity = 1
-                    self.is_file_selected = True
+            if self.is_format("txt", path):
+                self.format = "txt"
+                # Читаем содержимое
+                with open(path, "r", encoding='Windows-1251') as file:
+                    self.lines = file.read().splitlines()
 
-                    # Включаем кнопку выгрузки файла в Google Таблицу
-                    self.ids.upload_a_file_btn.disabled = False
+            # Проверяем если файл pdf
+            if self.is_format("pdf", path):
+                self.format = "pdf"
+                # Читаем содержимое
+                self.get_lines_from_pdf(path)
 
-                # Меняем текст на кнопке выбора файла на имя выбранного файла
-                self.ids.select_a_file_btn.text = f"[color=#696969]{file_name}[/color]"
+            # Скрываем текст kivymd кнопки и показываем текст kivy кнопки (он правильно переносит строки)
+            if not self.is_file_selected:
+                self.ids.select_a_file_mdbtn.icon = ''
+                self.ids.select_a_file_mdbtn.text = ''
+                self.ids.select_a_file_btn.opacity = 1
+                self.is_file_selected = True
 
-                self.exit_manager(self)
+                # Включаем кнопку выгрузки файла в Google Таблицу
+                self.ids.upload_a_file_btn.disabled = False
+
+            # Меняем текст на кнопке выбора файла на имя выбранного файла
+            self.ids.select_a_file_btn.text = f"[color=#696969]{file_name}[/color]"
+
+            self.exit_manager(self)
+
         else:
             # Вылезающее уведомление с ошибкой формата файла снизу
             if not self.not_txt_snackbar:
@@ -111,16 +125,33 @@ class MainScreen(MDScreen):
 
     # Проверяем текстовый ли файл
     @staticmethod
-    def is_txt(path):
-        if path.endswith('.txt'):
+    def is_text(path):
+        if path.endswith(('.txt', '.pdf')):
             return True
         else:
             print("Неподдерживаемый формат файла")
             return False
 
+    # Проверяем формат файла
+    @staticmethod
+    def is_format(format, path):
+        format_ending = f'.{format}'
+        if path.endswith(format_ending):
+            return True
+
     def exit_manager(self, instance):
         self.manager_open = False
         self.file_manager.close()
+
+    # Получаем содержимое pdf файла в виде строчек
+    def get_lines_from_pdf(self, path):
+        reader = PdfReader(path)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+        print(text)
+        self.lines = text.split("\n")
+        print(self.lines)
 
     # Получаем наш расчетный счет, на который идет приток денег
     def get_income_checking_account(self):
@@ -212,6 +243,48 @@ class MainScreen(MDScreen):
                                              payers_accounts, purposes_of_payments)))
         return required_values
 
+    # Получаем значения из pdf файла, необходимые для вычисления данных, которые потом будем вносить в таблицу
+    def get_required_values_from_pdf(self):
+        dates = []  # Дата
+        operation_names = []  # Название операции
+        sums_of_money = []  # Сумма
+
+        is_sberbank = False
+        is_document_section_started = False
+        for index, line in enumerate(self.lines):
+            if line.startswith('Сформировано в СберБанк Онлайн'):
+                is_sberbank = True
+            if is_sberbank:
+                if line.startswith('Расшифровка операций'):
+                    is_document_section_started = True
+
+                if is_document_section_started:
+                    # Проверяем подходит ли строка под формат даты
+                    if all(character.isnumeric() for character in [line[:2], line[3:5], line[6:10], line[11:13], line[14:16]]) and all(character == "." for character in [line[2], line[5]]) and line[13]==":":
+                        date = line[:10]
+                        print(line)
+                        dates.append(date)
+
+                        # Относительно строки даты рассматриваем следующие строки
+                        operation_names.append(self.lines[index + 1][17:])
+
+                        amount_of_money_line = self.lines[index + 2].replace("\xa0", "")
+                        if amount_of_money_line.rfind("-") >= 0:
+                            amount_beginning_index = amount_of_money_line.rfind("-")
+                        else:
+                            for character in reversed(amount_of_money_line):
+                                if not character.isnumeric():
+                                    if not character == ",":
+                                        amount_beginning_index = amount_of_money_line.rindex(character)+1
+                                        break
+
+                        amount_of_money = amount_of_money_line[amount_beginning_index:]
+                        sums_of_money.append(amount_of_money)
+
+        required_values = list(map(list, zip(dates, operation_names, sums_of_money)))
+        print(required_values)
+        return required_values
+
     # Формируем данные которые будем уже непосредственно вносить в таблицу
     def get_data_to_upload(self, required_values, income_checking_account):
         data_to_upload = []
@@ -228,13 +301,48 @@ class MainScreen(MDScreen):
 
             # Эти значения я пока не понял как получать
             accrual_date = ""  # Дата начисления. Используется при налогах (страхование)
-            nds = ""  # НДС
-
+            nds = ""  # НДС 
             project = ""  # Проект
+
             comment = values[8]  # Комментарий
 
             payment_type, legal_entity, article, amount_in_cny, cny_exchange_rate, income, outcome, counterparty = self.get_values_depending_on_income_or_outcome(
                 values, is_income)
+
+            data_to_upload.append([payment_date, accrual_date, payment_type, legal_entity, article,
+                                   amount_in_cny, cny_exchange_rate, income, outcome, nds,
+                                   project, counterparty, comment])
+        return data_to_upload
+
+    def get_data_to_upload_from_pdf(self, required_values):
+        data_to_upload = []
+        for values in required_values:
+            payment_date = values[0]  # Дата оплаты
+
+            # Эти значения я пока не понял как получать
+            accrual_date = ""  # Дата начисления. Используется при налогах (страхование)
+            nds = ""  # НДС
+            project = ""  # Проект
+
+            comment = ""  # Комментарий
+            if values[1].startswith('Сбербанк Онлайн перевод'):
+                comment = values[1]
+
+            payment_type = "Личная карта сбербанк"  # Нужна проверка, что действительно сбербанк, а не hardcoded значение
+            legal_entity = "ИП"
+
+            article = ""
+            amount_in_cny = ""
+            cny_exchange_rate = ""
+            income = ""
+            outcome = ""
+            if values[2].startswith("-"):
+                outcome = values[2][1:]
+            else:
+                income = values[2]
+            counterparty = ""
+            if not values[1].startswith('Сбербанк Онлайн перевод'):
+                counterparty = values[1]
 
             data_to_upload.append([payment_date, accrual_date, payment_type, legal_entity, article,
                                    amount_in_cny, cny_exchange_rate, income, outcome, nds,
@@ -461,9 +569,13 @@ class MainScreen(MDScreen):
         spreadsheet = service_account.open(google_sheet_name)
         worksheet = spreadsheet.worksheet(worksheet_name)
 
-        required_values = self.get_required_values()
-        income_checking_account = self.get_income_checking_account()  # РасчСчет
-        data_to_upload = self.get_data_to_upload(required_values, income_checking_account)
+        if self.format == "txt":
+            required_values = self.get_required_values()
+            income_checking_account = self.get_income_checking_account()  # РасчСчет
+            data_to_upload = self.get_data_to_upload(required_values, income_checking_account)
+        elif self.format == "pdf":
+            required_values = self.get_required_values_from_pdf()
+            data_to_upload = self.get_data_to_upload_from_pdf(required_values)
         if data_to_upload:  # Проверяем не пустой ли файл
             worksheet.update(f"A{self.next_available_row(worksheet)}:{chr(ord('A') - 1 + len(data_to_upload[0]))}"
                              f"{self.next_available_row(worksheet) + len(data_to_upload)}", data_to_upload)
