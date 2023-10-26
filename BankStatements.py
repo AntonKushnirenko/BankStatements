@@ -31,8 +31,9 @@ internal_movements_search_words = ["Перевод собственных ден
                                    "Перевод средств с расчетного счета на счет 'налоговая копилка'",
                                    "Возврат средств по договору займа от учредителя",
                                    "Перевод на свою карту физ лица", "перевод на собственную карту",
-                                   "перевод собственных средств",
+                                   "перевод собственных средств", "Сбербанк Онлайн перевод"
                                    ]
+withdrawal_of_money_by_the_owner_search_words = ["Сбербанк Онлайн перевод"]
 communication_services_search_words = ["Билайн", "beeline", "МОРТОН ТЕЛЕКОМ", "КАНТРИКОМ"]
 fuel_search_words = ["GAZPROMNEFT", "LUKOIL.AZS", "RNAZK ROSNEFT", "Газпромнефть",
                      "AZS", "АЗС", "Нефтьмагистраль", "Лукойл"]
@@ -324,6 +325,8 @@ class MainScreen(MDScreen):
             nds = ""  # НДС
             project = ""  # Проект
 
+            article = self.get_article(values[1], values[1], not values[2].startswith("-"))
+
             comment = ""  # Комментарий
             if values[1].startswith('Сбербанк Онлайн перевод'):
                 comment = values[1]
@@ -331,7 +334,6 @@ class MainScreen(MDScreen):
             payment_type = "Личная карта сбербанк"  # Нужна проверка, что действительно сбербанк, а не hardcoded значение
             legal_entity = "ИП"
 
-            article = ""
             amount_in_cny = ""
             cny_exchange_rate = ""
             income = ""
@@ -343,6 +345,8 @@ class MainScreen(MDScreen):
             counterparty = ""
             if not values[1].startswith('Сбербанк Онлайн перевод'):
                 counterparty = values[1]
+
+
 
             data_to_upload.append([payment_date, accrual_date, payment_type, legal_entity, article,
                                    amount_in_cny, cny_exchange_rate, income, outcome, nds,
@@ -411,7 +415,7 @@ class MainScreen(MDScreen):
 
         # Сокращение строк с названиями банков
         if any(search_word.lower() in values[bank_name_type_index].lower() for search_word in alpha_bank_search_words):
-            payment_type = f'{legal_entity} Альфа'
+            payment_type = f'{legal_entity} Альфа'  # Еще бывает "Личная карта Альфа"
         elif any(
                 search_word.lower() in values[bank_name_type_index].lower() for search_word in modul_bank_search_words):
             payment_type = f'{legal_entity} Модульбанк'
@@ -508,6 +512,11 @@ class MainScreen(MDScreen):
                 return "Банковское обслуживание и комиссии"
             elif any(search_word.lower() in comment_string.lower() for search_word in rate_search_words):
                 return "Обмен валют"
+            elif any(search_word.lower() in comment_string.lower() for search_word in withdrawal_of_money_by_the_owner_search_words):
+                if not is_income:
+                    return "Вывод ДС собственником"  # Не обязательно
+                elif is_income:
+                    return "Внутренние перемещения"  # Не обязательно
             elif any(search_word.lower() in comment_string.lower() for search_word in internal_movements_search_words):
                 return "Внутренние перемещения"
             elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
