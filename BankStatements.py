@@ -284,7 +284,7 @@ class MainScreen(MDScreen):
 
         required_values = list(map(list, zip(dates, operation_names, sums_of_money)))
         print(required_values)
-        return required_values
+        return required_values, is_sberbank
 
     # Формируем данные которые будем уже непосредственно вносить в таблицу
     def get_data_to_upload(self, required_values, income_checking_account):
@@ -315,7 +315,7 @@ class MainScreen(MDScreen):
                                    project, counterparty, comment])
         return data_to_upload
 
-    def get_data_to_upload_from_pdf(self, required_values):
+    def get_data_to_upload_from_pdf(self, required_values, is_sberbank):
         data_to_upload = []
         for values in required_values:
             payment_date = values[0]  # Дата оплаты
@@ -327,11 +327,32 @@ class MainScreen(MDScreen):
 
             article = self.get_article(values[1], values[1], not values[2].startswith("-"))
 
+            counterparty = ""
+            if not values[1].startswith('Сбербанк Онлайн перевод'):
+                counterparty = values[1]
+
             comment = ""  # Комментарий
             if values[1].startswith('Сбербанк Онлайн перевод'):
-                comment = values[1]
+                # Проверяем есть ли имя человека в строке 'Сбербанк Онлайн перевод'
+                for index, character in enumerate(reversed(values[1])):
+                    if character.isnumeric():
+                        last_number_index = len(values[1]) - 1 - index
+                        if last_number_index + 1 != len(values[1]):
+                            name_beginning_index = last_number_index + 2
+                            name = values[1][name_beginning_index:]
+                            if name != "":
+                                # Если есть - записываем в контрагента и убираем из комментария
+                                counterparty = name
+                                comment = values[1].replace(name, "")
+                            break
+                        else:
+                            # Если нет - оставляем комментарий 'Сбербанк Онлайн перевод...'
+                            comment = values[1]
+                            break
 
-            payment_type = "Личная карта сбербанк"  # Нужна проверка, что действительно сбербанк, а не hardcoded значение
+            # Проверяем, что типа оплаты действительно Сбербанк
+            if is_sberbank:
+                payment_type = "Личная карта сбербанк"
             legal_entity = "ИП"
 
             amount_in_cny = ""
@@ -342,11 +363,6 @@ class MainScreen(MDScreen):
                 outcome = values[2][1:]
             else:
                 income = values[2]
-            counterparty = ""
-            if not values[1].startswith('Сбербанк Онлайн перевод'):
-                counterparty = values[1]
-
-
 
             data_to_upload.append([payment_date, accrual_date, payment_type, legal_entity, article,
                                    amount_in_cny, cny_exchange_rate, income, outcome, nds,
@@ -583,8 +599,8 @@ class MainScreen(MDScreen):
             income_checking_account = self.get_income_checking_account()  # РасчСчет
             data_to_upload = self.get_data_to_upload(required_values, income_checking_account)
         elif self.format == "pdf":
-            required_values = self.get_required_values_from_pdf()
-            data_to_upload = self.get_data_to_upload_from_pdf(required_values)
+            required_values, is_sberbank = self.get_required_values_from_pdf()
+            data_to_upload = self.get_data_to_upload_from_pdf(required_values, is_sberbank)
         if data_to_upload:  # Проверяем не пустой ли файл
             worksheet.update(f"A{self.next_available_row(worksheet)}:{chr(ord('A') - 1 + len(data_to_upload[0]))}"
                              f"{self.next_available_row(worksheet) + len(data_to_upload)}", data_to_upload)
