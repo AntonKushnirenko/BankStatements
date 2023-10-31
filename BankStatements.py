@@ -33,7 +33,17 @@ internal_movements_search_words = ["Перевод собственных ден
                                    "Перевод на свою карту физ лица", "перевод на собственную карту",
                                    "перевод собственных средств", "Сбербанк Онлайн перевод"
                                    ]
-withdrawal_of_money_by_the_owner_search_words = ["Сбербанк Онлайн перевод"]
+withdrawal_of_money_by_the_owner_search_words = ["Сбербанк Онлайн перевод", ]
+contribution_of_money_by_the_owner_search_words = []
+returns_income_search_words = []
+caching_search_words = []
+marketing_search_words = []
+providing_bidding_search_words = []
+education_search_words = []
+sdek_search_words = []
+insurance_contributions_with_salary = []
+packaging_search_words = []
+wildberries_search_words = []
 communication_services_search_words = ["Билайн", "beeline", "МОРТОН ТЕЛЕКОМ", "КАНТРИКОМ"]
 fuel_search_words = ["GAZPROMNEFT", "LUKOIL.AZS", "RNAZK ROSNEFT", "Газпромнефть",
                      "AZS", "АЗС", "Нефтьмагистраль", "Лукойл"]
@@ -51,17 +61,21 @@ purchase_or_sale_search_words = ["за стяжки", "За кабельные",
                                  "СДС", "ВЕНЗА", "ФРЕШТЕЛ-МОСКВА", "Васильева", "СИАЙГРУПП", "МВМ", "КОНТУР-ПАК",
                                  "ЧИНЕЙКИНА", "ШАРАЕВА"]
 taxes_osno_search_words = ["Казначейство России (ФНС России)", "УФК"]
+taxes_usn_search_words = []
 warehouse_rent_search_words = ["Жилин", "Нагоркин"]
-salary_fixed_search_words = ["заработная плата"]
+salary_fixed_search_words = ["заработная плата", "У. НАТАЛЬЯ ВАЛЕРЬЕВНА", "С. ДМИТРИЙ ВАДИМОВИЧ"]
 loan_interest_repayment_search_words = ["Погашение просроч. процентов", "Оплата штрафа за проср. основной долг",
                                         "Оплата штрафа за проср. проценты", "просроч.", "проср."]
 other_search_words = ["ЖИВОЙ"]
+sberbank_comments_search_words = ["P2P_byPhone_tinkoff-bank", "ATM", "Тинькофф Банк", "oplata_beeline",
+                                  "Прочие выплаты"]
 alpha_bank_search_words = ["АЛЬФА-БАНК"]
 modul_bank_search_words = ["МОДУЛЬБАНК"]
 
 # Сокращения
 abbreviations = {"ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ": "ООО", "МОСКОВСКИЙ ФИЛИАЛ АО КБ": "АО",
-                 "СОЛДАТОВ АЛЕКСАНДР ИГОРЕВИЧ": "Солдатов А.И.", "ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ": "ИП"}
+                 "СОЛДАТОВ АЛЕКСАНДР ИГОРЕВИЧ": "Солдатов А.И.", "ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ": "ИП",
+                 "У. НАТАЛЬЯ ВАЛЕРЬЕВНА": "Наталья Валерьевна У"}
 
 class MainScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -150,9 +164,11 @@ class MainScreen(MDScreen):
         text = ""
         for page in reader.pages:
             text += page.extract_text() + "\n"
-        print(text)
         self.lines = text.split("\n")
         print(self.lines)
+
+# Сбербанк Онлайн перевод на карту 5228****1873 К. ЛЮБОВЬ ПАВЛОВНА
+# Строка разделяется на две!!! Нужно их соединить в одну
 
     # Получаем наш расчетный счет, на который идет приток денег
     def get_income_checking_account(self):
@@ -263,8 +279,12 @@ class MainScreen(MDScreen):
                     # Проверяем подходит ли строка под формат даты
                     if all(character.isnumeric() for character in [line[:2], line[3:5], line[6:10], line[11:13], line[14:16]]) and all(character == "." for character in [line[2], line[5]]) and line[13]==":":
                         date = line[:10]
-                        print(line)
                         dates.append(date)
+
+                        # Проверяем, что строка с названием операции не разделилась на две
+                        while not any(character.isnumeric() for character in self.lines[index + 2]):
+                            self.lines[index + 1] += f" {self.lines[index + 2]}"
+                            self.lines.pop(index +2)
 
                         # Относительно строки даты рассматриваем следующие строки
                         operation_names.append(self.lines[index + 1][17:])
@@ -315,6 +335,7 @@ class MainScreen(MDScreen):
                                    project, counterparty, comment])
         return data_to_upload
 
+    # Формируем данные которые будем уже непосредственно вносить в таблицу из pdf
     def get_data_to_upload_from_pdf(self, required_values, is_sberbank):
         data_to_upload = []
         for values in required_values:
@@ -329,9 +350,14 @@ class MainScreen(MDScreen):
 
             counterparty = ""
             if not values[1].startswith('Сбербанк Онлайн перевод'):
-                counterparty = values[1]
+                # Проверяем отдельные случаи, когда значение должно быть в комментарии, а не в контрагенте
+                if not any(search_word.lower() in values[1].lower() for search_word in sberbank_comments_search_words):
+                    counterparty = values[1]
 
             comment = ""  # Комментарий
+            if any(search_word.lower() in values[1].lower() for search_word in sberbank_comments_search_words):
+                comment = values[1]
+
             if values[1].startswith('Сбербанк Онлайн перевод'):
                 # Проверяем есть ли имя человека в строке 'Сбербанк Онлайн перевод'
                 for index, character in enumerate(reversed(values[1])):
@@ -350,7 +376,11 @@ class MainScreen(MDScreen):
                             comment = values[1]
                             break
 
-            # Проверяем, что типа оплаты действительно Сбербанк
+            # Сокращаем Юр лица в контрагентах
+            if counterparty in abbreviations.keys():
+                counterparty = self.abbreviaton(counterparty)
+
+            # Проверяем, что тип оплаты действительно Сбербанк
             if is_sberbank:
                 payment_type = "Личная карта сбербанк"
             legal_entity = "ИП"
@@ -465,15 +495,9 @@ class MainScreen(MDScreen):
 
         counterparty = values[counterparty_index]  # Контрагент (Плательщик1/Получатель1)
 
-        # Сокращаем Юр лица
-        abbreviated_counterparty = None
-        for full, abbreviated in abbreviations.items():
-            if not abbreviated_counterparty:
-                abbreviated_counterparty = self.counterparty_case_insensitive_replace(counterparty, full, abbreviated)
-
-        # Присваеваем сокращенное значение, если сокращение нашлось
-        if abbreviated_counterparty:
-            counterparty = abbreviated_counterparty
+        # Сокращаем Юр лица в контрагентах
+        if counterparty in abbreviations.keys():
+            counterparty = self.abbreviaton(counterparty)
 
         # Если изначально у контрагента было "(ИП)" - ставим "ИП" в начало
         if "(ИП)" in counterparty:
@@ -481,6 +505,13 @@ class MainScreen(MDScreen):
             counterparty = "ИП " + counterparty
 
         return payment_type, legal_entity, article, amount_in_cny, cny_exchange_rate, income, outcome, counterparty
+
+    # Сокращаем Юр лица в контрагентах
+    def abbreviaton(self, counterparty):
+        for full, abbreviated in abbreviations.items():
+            abbreviated_counterparty = self.counterparty_case_insensitive_replace(counterparty, full, abbreviated)
+            if abbreviated_counterparty:
+                return abbreviated_counterparty
 
     # Заменяем юр лица в строке независимо от заглавных или маленьких букв
     @staticmethod
@@ -528,6 +559,8 @@ class MainScreen(MDScreen):
                 return "Банковское обслуживание и комиссии"
             elif any(search_word.lower() in comment_string.lower() for search_word in rate_search_words):
                 return "Обмен валют"
+            elif any(search_word.lower() in comment_string.lower() for search_word in salary_fixed_search_words):
+                return "Зарплата - фикс"
             elif any(search_word.lower() in comment_string.lower() for search_word in withdrawal_of_money_by_the_owner_search_words):
                 if not is_income:
                     return "Вывод ДС собственником"  # Не обязательно
@@ -563,8 +596,6 @@ class MainScreen(MDScreen):
                 return "Налоги ОСНО"
             elif any(search_word.lower() in counterparty_string.lower() for search_word in warehouse_rent_search_words):
                 return "Аренда склада"
-            elif any(search_word.lower() in comment_string.lower() for search_word in salary_fixed_search_words):
-                return "Зарплата - фикс"
             elif any(search_word.lower() in comment_string.lower() for search_word in loan_interest_repayment_search_words):
                 return "Погашение процентов по кредиту"
             elif any(search_word.lower() in counterparty_string.lower() for search_word in yandex_search_words):
