@@ -167,9 +167,6 @@ class MainScreen(MDScreen):
         self.lines = text.split("\n")
         print(self.lines)
 
-# Сбербанк Онлайн перевод на карту 5228****1873 К. ЛЮБОВЬ ПАВЛОВНА
-# Строка разделяется на две!!! Нужно их соединить в одну
-
     # Получаем наш расчетный счет, на который идет приток денег
     def get_income_checking_account(self):
         for line in self.lines:
