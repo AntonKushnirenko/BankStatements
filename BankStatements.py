@@ -23,59 +23,96 @@ worksheet_name = "Лист1"  # Название листа (страницы), 
 starting_directory = "/"
 
 # Поисковые слова
-ooo_search_words = ["ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО"]
-ip_search_words = ["ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ", "ИП"]
-rate_search_words = ["курс", "Курс сделки", "курс ЦБ"]
-banking_services_search_words = ["Комиссия", "Ком-я", "Выплата начисленных процентов"]
-internal_movements_search_words = ["Перевод собственных денежных средств",
+ooo_search_words = ("ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО")
+ip_search_words = ("ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ", "ИП")
+rate_search_words = ("курс", "Курс сделки", "курс ЦБ")
+banking_services_search_words = ("Комиссия", "Ком-я", "Выплата начисленных процентов")
+internal_movements_search_words = ("Перевод собственных денежных средств",
                                    "Перевод средств с расчетного счета на счет 'налоговая копилка'",
                                    "Возврат средств по договору займа от учредителя",
                                    "Перевод на свою карту физ лица", "перевод на собственную карту",
-                                   "перевод собственных средств", "Сбербанк Онлайн перевод"
-                                   ]
-withdrawal_of_money_by_the_owner_search_words = ["Сбербанк Онлайн перевод", ]
-contribution_of_money_by_the_owner_search_words = []
-returns_income_search_words = []
-caching_search_words = []
-marketing_search_words = []
-providing_bidding_search_words = []
-education_search_words = []
-sdek_search_words = []
-insurance_contributions_with_salary = []
-packaging_search_words = []
-wildberries_search_words = []
-communication_services_search_words = ["Билайн", "beeline", "МОРТОН ТЕЛЕКОМ", "КАНТРИКОМ"]
-fuel_search_words = ["GAZPROMNEFT", "LUKOIL.AZS", "RNAZK ROSNEFT", "Газпромнефть",
-                     "AZS", "АЗС", "Нефтьмагистраль", "Лукойл"]
-yandex_search_words = ["ЯНДЕКС"]
-ozon_search_words = ["ООО ИНТЕРНЕТ РЕШЕНИЯ"]
-sbermarket_search_words = ['"МАРКЕТПЛЕЙС"', "ПАО Сбербанк"]
-fraht_search_words = ["СМАРТЛОГИСТЕР"]
-customs_payments_search_words = ["ФЕДЕРАЛЬНАЯ ТАМОЖЕННАЯ СЛУЖБА", "таможенного", "ТД"]
-express_delivery_search_words = ["АВТОФЛОТ-СТОЛИЦА", "Деловые Линии", "Достависта",
-                                 "доставки", "доставка", "грузоперевозки", "грузоперевозка", "перевозки", "перевозка"]
-delivery_to_moscow_search_words = ["SHEREMETEVO-KARGO", "АВРОРА-М", "Байкал-Сервис ТК"]
-accounting_search_words = ["бухгалтерских", "ДК-КОНСАЛТ"]
-purchase_or_sale_search_words = ["за стяжки", "За кабельные",
+                                   "перевод собственных средств",
+                                   "Сбербанк Онлайн перевод", "Прочие выплаты", "ATM", "Тинькофф Банк")
+withdrawal_of_money_by_the_owner_search_words = ("Сбербанк Онлайн перевод",
+                                                 "PYATEROCHKA", "QSR", "APTEKA", "RPS SERVIS", "SOKOLOV", "CHaihona",
+                                                 "LAWAVE", "EUROAUTO", "TC SKHODNENSKAYA", "MAPP_SBERBANK_ONL@IN_PAY",
+                                                 "IP SAMOTAEVA A.Z.", "AVTOTREYD", "VKUSVILL", "IP Kuznetsov",
+                                                 "COFFEE", "AVTODOR", "IP LESONEN M.A.", "IP SAMSONOV V.N.",
+                                                 "FEJS TU FEJS", "UMNYASHKA-SCHOOL.RU", "KORCHMA TARAS BULBA",
+                                                 "P2P_byPhone_tinkoff-bank", "PEREKRESTOK", "IP BANYAS P.V.",
+                                                 "PARKOVKA", "MOSKALENKO", "PE MOSKALENKO ANDREY", "REPETICIONNAYABAZAT",
+                                                 "ZOOMAGAZIN", "MYASNAYA LAVKA", "OKEY", "РЕСО-Гарантия", "SITI LAJF",
+                                                 "PRAZHSKAYA", "MAGBURGER", "TEREMOK", "IP Badalyan LR", "owl Bean",
+                                                 "FISHBAZAAR", "RYNOK", "SUPERMARKET", "PRODUKTY", "BI-BI",
+                                                 "IP LYASHCHENKO L.V.", "WWW.1PARTS.RU", "IP SHASHKIN O V",  # IP SHASHKIN O V - внутренние перемещения, но я не уверен, что это так должно быть
+                                                 "VSEINSTRUMENTI.RU")  # VSEINSTRUMENTI.RU - прочее при притоке (2223,00 07.06)
+contribution_of_money_by_the_owner_search_words = ()
+returns_income_search_words = ()
+caching_search_words = ()
+marketing_search_words = ()
+providing_bidding_search_words = ()
+education_search_words = ()
+sdek_search_words = ()
+insurance_contributions_with_salary = ()
+packaging_search_words = ()
+wildberries_search_words = ()
+communication_services_search_words = ("Билайн", "beeline", "МОРТОН ТЕЛЕКОМ", "КАНТРИКОМ")
+fuel_search_words = ("GAZPROMNEFT", "LUKOIL.AZS", "RNAZK ROSNEFT", "Газпромнефть",
+                     "AZS", "АЗС", "Нефтьмагистраль", "Лукойл")
+yandex_search_words = ("ЯНДЕКС", )
+ozon_search_words = ("ООО ИНТЕРНЕТ РЕШЕНИЯ", )
+sbermarket_search_words = ('"МАРКЕТПЛЕЙС"', "ПАО Сбербанк")
+fraht_search_words = ("СМАРТЛОГИСТЕР", )  # ООО СМАРТЛОГИСТЕР не только фрахт, но и может быть Таможенные платежи
+customs_payments_search_words = ("ФЕДЕРАЛЬНАЯ ТАМОЖЕННАЯ СЛУЖБА", "таможенного", "ТД")
+express_delivery_search_words = ("АВТОФЛОТ-СТОЛИЦА", "Деловые Линии", "Достависта",
+                                 "доставки", "доставка", "грузоперевозки", "грузоперевозка", "перевозки", "перевозка")
+delivery_to_moscow_search_words = ("SHEREMETEVO-KARGO", "АВРОРА-М", "Байкал-Сервис ТК")
+accounting_search_words = ("бухгалтерских", "ДК-КОНСАЛТ")
+purchase_or_sale_search_words = ("за стяжки", "За кабельные",
                                  "Флекс", "Мегуна", "19 ДЮЙМОВ", "СВЯЗЬГАРАНТ", "Техтранссервис", "ВИССАМ",
                                  "СДС", "ВЕНЗА", "ФРЕШТЕЛ-МОСКВА", "Васильева", "СИАЙГРУПП", "МВМ", "КОНТУР-ПАК",
-                                 "ЧИНЕЙКИНА", "ШАРАЕВА"]
-taxes_osno_search_words = ["Казначейство России (ФНС России)", "УФК"]
-taxes_usn_search_words = []
-warehouse_rent_search_words = ["Жилин", "Нагоркин"]
-salary_fixed_search_words = ["заработная плата", "У. НАТАЛЬЯ ВАЛЕРЬЕВНА", "С. ДМИТРИЙ ВАДИМОВИЧ"]
-loan_interest_repayment_search_words = ["Погашение просроч. процентов", "Оплата штрафа за проср. основной долг",
-                                        "Оплата штрафа за проср. проценты", "просроч.", "проср."]
-other_search_words = ["ЖИВОЙ"]
-sberbank_comments_search_words = ["P2P_byPhone_tinkoff-bank", "ATM", "Тинькофф Банк", "oplata_beeline",
-                                  "Прочие выплаты"]
-alpha_bank_search_words = ["АЛЬФА-БАНК"]
-modul_bank_search_words = ["МОДУЛЬБАНК"]
+                                 "ЧИНЕЙКИНА", "ШАРАЕВА")
+taxes_osno_search_words = ("Казначейство России (ФНС России)", "УФК")
+taxes_usn_search_words = ()
+warehouse_rent_search_words = ("Жилин", "Нагоркин")
+salary_fixed_search_words = ("заработная плата", "У. НАТАЛЬЯ ВАЛЕРЬЕВНА", "С. ДМИТРИЙ ВАДИМОВИЧ")
+loan_interest_repayment_search_words = ("Погашение просроч. процентов", "Оплата штрафа за проср. основной долг",
+                                        "Оплата штрафа за проср. проценты", "просроч.", "проср.")
+other_search_words = ("ЖИВОЙ", )
+alpha_bank_search_words = ("АЛЬФА-БАНК", )
+modul_bank_search_words = ("МОДУЛЬБАНК", )
+sberbank_comments_search_words = ("P2P_byPhone_tinkoff-bank", "ATM", "Тинькофф Банк", "oplata_beeline",
+                                  "Прочие выплаты")
 
 # Сокращения
 abbreviations = {"ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ": "ООО", "МОСКОВСКИЙ ФИЛИАЛ АО КБ": "АО",
                  "СОЛДАТОВ АЛЕКСАНДР ИГОРЕВИЧ": "Солдатов А.И.", "ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ": "ИП",
                  "У. НАТАЛЬЯ ВАЛЕРЬЕВНА": "Наталья Валерьевна У"}
+# Статьи
+articles_by_search_words_for_comments = {banking_services_search_words: "Банковское обслуживание и комиссии",
+                                         rate_search_words: "Обмен валют",
+                                         salary_fixed_search_words: "Зарплата - фикс",
+                                         internal_movements_search_words: "Внутренние перемещения",
+                                         loan_interest_repayment_search_words: "Погашение процентов по кредиту"}
+articles_by_search_words_for_counterpartys = {delivery_to_moscow_search_words: "Доставка до МСК",
+                                              taxes_osno_search_words: "Налоги ОСНО",
+                                              warehouse_rent_search_words: "Аренда склада",
+                                              yandex_search_words: "Я.Маркет",
+                                              ozon_search_words: "Ozon",
+                                              sbermarket_search_words: "Сбермаркет",
+                                              fraht_search_words: "Фрахт",
+                                              other_search_words: "Прочее"}
+articles_by_search_words_for_comments_or_counterpartys = {communication_services_search_words: "Услуги связи и Интернет",
+                                                          fuel_search_words: "Топливо",
+                                                          customs_payments_search_words: "Таможенные платежи",
+                                                          express_delivery_search_words: "Курьерская доставка",
+                                                          accounting_search_words: "Бухгалтерия"}
+articles_by_search_words_for_comments_if_income = {withdrawal_of_money_by_the_owner_search_words: "Внутренние перемещения"}
+articles_by_search_words_for_comments_if_outcome = {withdrawal_of_money_by_the_owner_search_words: "Вывод ДС собственником"}
+articles_by_search_words_for_comments_or_counterpartys_if_income = {purchase_or_sale_search_words: "Оптовые продажи"}
+articles_by_search_words_for_comments_or_counterpartys_if_outcome = {purchase_or_sale_search_words: "Закупка товара"}
+
+priority_order_of_articles = ("Зарплата - фикс", "Оптовые продажи", "Вывод ДС собственником", "Фрахт", "Налоги ОСНО", )
 
 class MainScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -94,7 +131,6 @@ class MainScreen(MDScreen):
 
     # Этот метод будет вызываться при выборе файла
     def select_path(self, path):
-        print("Путь: ", path)
         app = BankStatementsApp.get_running_app()
         # Проверяем текстовый ли файл
         if self.is_text(path):
@@ -345,6 +381,17 @@ class MainScreen(MDScreen):
 
             article = self.get_article(values[1], values[1], not values[2].startswith("-"))
 
+            # Убираем приписки "*Название города* RUS" в конце названия операции
+            if values[1].endswith("RUS"):
+                city_name_first_word = values[1].split()[-2]
+                # Если между предыдущими двумя словами один пробел - название города в два слова
+                if values[1][values[1].find(values[1].split()[-2]) - 1].isspace() and not values[1][
+                    values[1].find(values[1].split()[-2]) - 2].isspace():
+                    city_name_second_word = values[1].split()[-3]
+                    values[1] = values[1].replace(city_name_second_word, " ")
+                values[1] = values[1].replace("RUS", " ")
+                values[1] = values[1].replace(city_name_first_word, " ")
+
             counterparty = ""
             if not values[1].startswith('Сбербанк Онлайн перевод'):
                 # Проверяем отдельные случаи, когда значение должно быть в комментарии, а не в контрагенте
@@ -374,7 +421,7 @@ class MainScreen(MDScreen):
                             break
 
             # Сокращаем Юр лица в контрагентах
-            if counterparty in abbreviations.keys():
+            if any(full_phrase.upper() in counterparty.upper() for full_phrase in abbreviations.keys()):
                 counterparty = self.abbreviaton(counterparty)
 
             # Проверяем, что тип оплаты действительно Сбербанк
@@ -493,7 +540,7 @@ class MainScreen(MDScreen):
         counterparty = values[counterparty_index]  # Контрагент (Плательщик1/Получатель1)
 
         # Сокращаем Юр лица в контрагентах
-        if counterparty in abbreviations.keys():
+        if any(full_phrase.upper() in counterparty.upper() for full_phrase in abbreviations.keys()):
             counterparty = self.abbreviaton(counterparty)
 
         # Если изначально у контрагента было "(ИП)" - ставим "ИП" в начало
@@ -551,7 +598,65 @@ class MainScreen(MDScreen):
     # Получение статьи через поисковые слова в комментариях или контрагенте
     @staticmethod
     def get_article(comment_string, counterparty_string, is_income):
+
         if comment_string or counterparty_string:
+            values_to_return = []
+
+            # Поиск по комментарию
+            for search_words_and_article in articles_by_search_words_for_comments.items():
+                # Если ключи (tuple поисковых слов) из словаря статей совпадают с комментарием
+                if any(search_word.lower() in comment_string.lower() for search_word in search_words_and_article[0]):
+                    values_to_return.append(
+                        search_words_and_article[1])  # Возвращаем значение (статьи) из словаря статей
+
+            # Поиск по контрагенту
+            for search_words_and_article in articles_by_search_words_for_counterpartys.items():
+                if any(search_word.lower() in counterparty_string.lower() for search_word in
+                       search_words_and_article[0]):
+                    values_to_return.append(search_words_and_article[1])
+
+            # Поиск по комментарию и контрагенту
+            for search_words_and_article in articles_by_search_words_for_comments_or_counterpartys.items():
+                if any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
+                       for search_word in search_words_and_article[0]):
+                    values_to_return.append(search_words_and_article[1])
+
+            # Поиск для случаев, если статья зависит от притока/оттока ДС
+            if is_income:
+                for search_words_and_article in articles_by_search_words_for_comments_if_income.items():
+                    if any(search_word.lower() in comment_string.lower() for search_word in search_words_and_article[0]):
+                        values_to_return.append(search_words_and_article[1])
+                for search_words_and_article in articles_by_search_words_for_comments_or_counterpartys_if_income.items():
+                    if any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
+                           for search_word in search_words_and_article[0]):
+                        values_to_return.append(search_words_and_article[1])
+
+            elif not is_income:
+                for search_words_and_article in articles_by_search_words_for_comments_if_outcome.items():
+                    if any(search_word.lower() in comment_string.lower() for search_word in search_words_and_article[0]):
+                        values_to_return.append(search_words_and_article[1])
+                for search_words_and_article in articles_by_search_words_for_comments_or_counterpartys_if_outcome.items():
+                    if any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
+                           for search_word in search_words_and_article[0]):
+                        values_to_return.append(search_words_and_article[1])
+
+            print(comment_string, " / ",counterparty_string)
+            print(values_to_return)
+
+            # Возвращаем статью, которая идет раньше в порядке приоритета или возращаем статьи через "/"
+            if values_to_return != []:
+                # Убираем дубликаты
+                values_to_return = list(set(values_to_return))
+                if len(values_to_return) > 1:
+                    for article in priority_order_of_articles:
+                        if article in values_to_return:
+                            return article
+                    return '/'.join(values_to_return)
+                return '/'.join(values_to_return)
+            else:
+                return ""
+
+            '''
             if any(search_word.lower() in comment_string.lower() for search_word in banking_services_search_words):
                 return "Банковское обслуживание и комиссии"
             elif any(search_word.lower() in comment_string.lower() for search_word in rate_search_words):
@@ -563,6 +668,7 @@ class MainScreen(MDScreen):
                     return "Вывод ДС собственником"  # Не обязательно
                 elif is_income:
                     return "Внутренние перемещения"  # Не обязательно
+                    # Или прочее
             elif any(search_word.lower() in comment_string.lower() for search_word in internal_movements_search_words):
                 return "Внутренние перемещения"
             elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
@@ -607,13 +713,14 @@ class MainScreen(MDScreen):
                 return "Прочее"
             else:
                 return ""
+            '''
         else:
             return ""
 
     # Поиск следующей свободной строки в таблице
     @staticmethod
     def next_available_row(worksheet):
-        str_list = list(filter(None, worksheet.col_values(1)))  # Берем все значения из первого столбика, потом ...?
+        str_list = list(filter(None, worksheet.col_values(1)))
         return len(str_list) + 1
 
     # Работа с гугл таблицами
