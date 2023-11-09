@@ -6,6 +6,11 @@ import gspread
 import os
 from PyPDF2 import PdfReader
 
+# При обмене валют, если комментарий
+# {VO11100}ПО МТ103 референс MODBRU230816324 дата валютирования 18.08.2023 на сумму 85,770.00CNY
+# ф-я get_cny_exchange_rate_and_amount_in_cny не срабатывает
+# и '85400,00 - сумма в юанях, а программа думает, что в рублях
+
 # Устанавливаем размер окна
 from kivy.core.window import Window
 window_size = (700, 525)
@@ -32,7 +37,10 @@ internal_movements_search_words = ("Перевод собственных ден
                                    "Возврат средств по договору займа от учредителя",
                                    "Перевод на свою карту физ лица", "перевод на собственную карту",
                                    "перевод собственных средств",
-                                   "Сбербанк Онлайн перевод", "Прочие выплаты", "ATM", "Тинькофф Банк")
+                                   "Сбербанк Онлайн перевод", "Прочие выплаты", "ATM", "Тинькофф Банк",
+                                   "возврат долга по договору займа", "Перевод на свой счет в дргуой банк",
+                                   "перевод своих средств", "взнос по договору займа",
+                                   "Возврат займа единственному учредителю",)
 withdrawal_of_money_by_the_owner_search_words = ("Сбербанк Онлайн перевод",
                                                  "PYATEROCHKA", "QSR", "APTEKA", "RPS SERVIS", "SOKOLOV", "CHaihona",
                                                  "LAWAVE", "EUROAUTO", "TC SKHODNENSKAYA", "MAPP_SBERBANK_ONL@IN_PAY",
@@ -48,37 +56,43 @@ withdrawal_of_money_by_the_owner_search_words = ("Сбербанк Онлайн 
                                                  "VSEINSTRUMENTI.RU")  # VSEINSTRUMENTI.RU - прочее при притоке (2223,00 07.06)
 contribution_of_money_by_the_owner_search_words = ()
 returns_income_search_words = ()
-caching_search_words = ()
-marketing_search_words = ()
+caching_search_words = ("СТАЛЬНОЕ СЕРДЦЕ", 'ООО "ТЕХКОМ"')
+marketing_search_words = ("продвижению", )
 providing_bidding_search_words = ()
-education_search_words = ()
-sdek_search_words = ()
+education_search_words = ("за обучение", "за образовательные услуги", "ЦЗП") # Еще не добавил
+sdek_search_words = ("СДЭК", )
 insurance_contributions_with_salary = ()
 packaging_search_words = ()
-wildberries_search_words = ()
+wildberries_search_words = ("ВАЙЛДБЕРРИЗ", )
 communication_services_search_words = ("Билайн", "beeline", "МОРТОН ТЕЛЕКОМ", "КАНТРИКОМ")
 fuel_search_words = ("GAZPROMNEFT", "LUKOIL.AZS", "RNAZK ROSNEFT", "Газпромнефть",
                      "AZS", "АЗС", "Нефтьмагистраль", "Лукойл")
 yandex_search_words = ("ЯНДЕКС", )
-ozon_search_words = ("ООО ИНТЕРНЕТ РЕШЕНИЯ", )
-sbermarket_search_words = ('"МАРКЕТПЛЕЙС"', "ПАО Сбербанк")
-fraht_search_words = ("СМАРТЛОГИСТЕР", )  # ООО СМАРТЛОГИСТЕР не только фрахт, но и может быть Таможенные платежи
-customs_payments_search_words = ("ФЕДЕРАЛЬНАЯ ТАМОЖЕННАЯ СЛУЖБА", "таможенного", "ТД")
+ozon_search_words = ("ООО ИНТЕРНЕТ РЕШЕНИЯ", 'ООО "ИНТЕРНЕТ РЕШЕНИЯ"')
+sbermarket_search_words = ('"МАРКЕТПЛЕЙС"', "ПАО Сбербанк")  # Из-за того что много где написанн расчетный счет
+# ООО "АВТОТЕХГРУПП" Р/С 40702810140000011040 в ПАО Сбербанк г Москва
+# "ПАО Сбербанк" дает статью сбермаркет, в местах где должна быть оптовая продажа
+fraht_search_words = ("СМАРТЛОГИСТЕР", "транспортные услуги")  # ООО СМАРТЛОГИСТЕР не только фрахт, но и может быть Таможенные платежи
+customs_payments_search_words = ("ФЕДЕРАЛЬНАЯ ТАМОЖЕННАЯ СЛУЖБА", "таможенного", "ТД", "ДТ")
 express_delivery_search_words = ("АВТОФЛОТ-СТОЛИЦА", "Деловые Линии", "Достависта",
                                  "доставки", "доставка", "грузоперевозки", "грузоперевозка", "перевозки", "перевозка")
 delivery_to_moscow_search_words = ("SHEREMETEVO-KARGO", "АВРОРА-М", "Байкал-Сервис ТК")
 accounting_search_words = ("бухгалтерских", "ДК-КОНСАЛТ")
-purchase_or_sale_search_words = ("за стяжки", "За кабельные",
+purchase_or_sale_search_words = ("за стяжки", "За кабельные", "за измельчитель", "за электрооборудование",
+                                 "за электротовары", "за хомуты", "ЗА ТМЦ", "за строй материалы", "за этикетки",
+                                 "за фасадные комплектующие", "ЗА ОБОРУДОВАНИЕ", "за розетки", "за кабель",
+                                 "За крепеж", "блоки розеток", "За разъемы", "За Щит ЩРН", "за выключатели",
+                                 "за нейлоновые стяжки", "за материалы",
                                  "Флекс", "Мегуна", "19 ДЮЙМОВ", "СВЯЗЬГАРАНТ", "Техтранссервис", "ВИССАМ",
                                  "СДС", "ВЕНЗА", "ФРЕШТЕЛ-МОСКВА", "Васильева", "СИАЙГРУПП", "МВМ", "КОНТУР-ПАК",
-                                 "ЧИНЕЙКИНА", "ШАРАЕВА")
+                                 "ЧИНЕЙКИНА", "ШАРАЕВА", "АВАЛОН", "МОСКАБЕЛЬ")
 taxes_osno_search_words = ("Казначейство России (ФНС России)", "УФК")
-taxes_usn_search_words = ()
+taxes_usn_search_words = ("Налог при упрощенной системе налогообложения", "усн")
 warehouse_rent_search_words = ("Жилин", "Нагоркин")
 salary_fixed_search_words = ("заработная плата", "У. НАТАЛЬЯ ВАЛЕРЬЕВНА", "С. ДМИТРИЙ ВАДИМОВИЧ")
 loan_interest_repayment_search_words = ("Погашение просроч. процентов", "Оплата штрафа за проср. основной долг",
                                         "Оплата штрафа за проср. проценты", "просроч.", "проср.")
-other_search_words = ("ЖИВОЙ", )
+other_search_words = ("ЖИВОЙ", "АДВОКАТ")
 alpha_bank_search_words = ("АЛЬФА-БАНК", )
 modul_bank_search_words = ("МОДУЛЬБАНК", )
 sberbank_comments_search_words = ("P2P_byPhone_tinkoff-bank", "ATM", "Тинькофф Банк", "oplata_beeline",
@@ -87,32 +101,40 @@ sberbank_comments_search_words = ("P2P_byPhone_tinkoff-bank", "ATM", "Тиньк
 # Сокращения
 abbreviations = {"ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ": "ООО", "МОСКОВСКИЙ ФИЛИАЛ АО КБ": "АО",
                  "СОЛДАТОВ АЛЕКСАНДР ИГОРЕВИЧ": "Солдатов А.И.", "ИНДИВИДУАЛЬНЫЙ ПРЕДПРИНИМАТЕЛЬ": "ИП",
+                 "НЕКОММЕРЧЕСКАЯ ОРГАНИЗАЦИЯ": "НКО", "Закрытое акционерное общество": "ЗАО",
                  "У. НАТАЛЬЯ ВАЛЕРЬЕВНА": "Наталья Валерьевна У"}
 # Статьи
 articles_by_search_words_for_comments = {banking_services_search_words: "Банковское обслуживание и комиссии",
                                          rate_search_words: "Обмен валют",
                                          salary_fixed_search_words: "Зарплата - фикс",
                                          internal_movements_search_words: "Внутренние перемещения",
-                                         loan_interest_repayment_search_words: "Погашение процентов по кредиту"}
+                                         loan_interest_repayment_search_words: "Погашение процентов по кредиту",
+                                         taxes_usn_search_words: "Налоги УСН",
+                                         marketing_search_words: "Маркетинг"}
 articles_by_search_words_for_counterpartys = {delivery_to_moscow_search_words: "Доставка до МСК",
                                               taxes_osno_search_words: "Налоги ОСНО",
                                               warehouse_rent_search_words: "Аренда склада",
                                               yandex_search_words: "Я.Маркет",
                                               ozon_search_words: "Ozon",
                                               sbermarket_search_words: "Сбермаркет",
-                                              fraht_search_words: "Фрахт",
-                                              other_search_words: "Прочее"}
+                                              other_search_words: "Прочее",
+                                              wildberries_search_words: "Wildberries",
+                                              sdek_search_words: "СДЭК",
+                                              caching_search_words: "Кэширование"}
 articles_by_search_words_for_comments_or_counterpartys = {communication_services_search_words: "Услуги связи и Интернет",
                                                           fuel_search_words: "Топливо",
                                                           customs_payments_search_words: "Таможенные платежи",
                                                           express_delivery_search_words: "Курьерская доставка",
-                                                          accounting_search_words: "Бухгалтерия"}
+                                                          accounting_search_words: "Бухгалтерия",
+                                                          fraht_search_words: "Фрахт",
+                                                          education_search_words: "Обучение"}
 articles_by_search_words_for_comments_if_income = {withdrawal_of_money_by_the_owner_search_words: "Внутренние перемещения"}
 articles_by_search_words_for_comments_if_outcome = {withdrawal_of_money_by_the_owner_search_words: "Вывод ДС собственником"}
 articles_by_search_words_for_comments_or_counterpartys_if_income = {purchase_or_sale_search_words: "Оптовые продажи"}
 articles_by_search_words_for_comments_or_counterpartys_if_outcome = {purchase_or_sale_search_words: "Закупка товара"}
 
-priority_order_of_articles = ("Зарплата - фикс", "Оптовые продажи", "Вывод ДС собственником", "Фрахт", "Налоги ОСНО", )
+priority_order_of_articles = ("Зарплата - фикс", "Оптовые продажи", "Вывод ДС собственником", "Таможенные платежи",
+                              "Фрахт", "Налоги УСН", "Налоги ОСНО", "Маркетинг", "Кэширование", )
 
 class MainScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -235,14 +257,15 @@ class MainScreen(MDScreen):
                     dates.append(date)
 
                 # Если ДатаСписано или ДатаПоступило позже Дата, берется ДатаСписано или ДатаПоступило
-                if line.startswith('ДатаСписано='):
-                    date_write_off_or_received = line.replace('ДатаСписано=', "")
-                elif line.startswith('ДатаПоступило='):
+                date_write_off_or_received = ""
+                if line.startswith('ДатаПоступило='):
                     date_write_off_or_received = line.replace('ДатаПоступило=', "")
-                    if date_write_off_or_received != "":
-                        if dates:
-                            if dates[-1] != date_write_off_or_received:
-                                dates[-1] = date_write_off_or_received
+                elif line.startswith('ДатаСписано='):
+                    date_write_off_or_received = line.replace('ДатаСписано=', "")
+                if date_write_off_or_received != "":
+                    if dates:
+                        if dates[-1] != date_write_off_or_received:
+                            dates[-1] = date_write_off_or_received
 
                 if line.startswith('ПолучательБанк1='):
                     beneficiary_bank = line.replace('ПолучательБанк1=', "")
@@ -640,8 +663,8 @@ class MainScreen(MDScreen):
                            for search_word in search_words_and_article[0]):
                         values_to_return.append(search_words_and_article[1])
 
-            print(comment_string, " / ",counterparty_string)
-            print(values_to_return)
+            #print(comment_string, " / ",counterparty_string)
+            #print(values_to_return)
 
             # Возвращаем статью, которая идет раньше в порядке приоритета или возращаем статьи через "/"
             if values_to_return != []:
