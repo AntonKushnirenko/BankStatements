@@ -685,7 +685,8 @@ class MainScreen(MDScreen):
                 return False
 
     # Получение статьи через поисковые слова в комментариях или контрагенте
-    def get_article(self, comment_string, counterparty_string, is_income):
+    @staticmethod
+    def get_article(comment_string, counterparty_string, is_income):
         global show_article_options
 
         if comment_string or counterparty_string:
@@ -803,7 +804,6 @@ class MainScreen(MDScreen):
 
 # Элемент (строка) в меню настроек
 class CheckboxItem(OneLineAvatarIconListItem):
-
     def set_check(self, instance_check):
         global show_article_options
         global is_cny_statement_manually
