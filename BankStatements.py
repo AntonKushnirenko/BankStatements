@@ -6,11 +6,6 @@ import gspread
 import os
 from PyPDF2 import PdfReader
 
-# При обмене валют, если комментарий
-# {VO11100}ПО МТ103 референс MODBRU230816324 дата валютирования 18.08.2023 на сумму 85,770.00CNY
-# ф-я get_cny_exchange_rate_and_amount_in_cny не срабатывает
-# и '85400,00 - сумма в юанях, а программа думает, что в рублях
-
 # Устанавливаем размер окна
 from kivy.core.window import Window
 window_size = (700, 525)
@@ -54,25 +49,23 @@ withdrawal_of_money_by_the_owner_search_words = ("Сбербанк Онлайн 
                                                  "FISHBAZAAR", "RYNOK", "SUPERMARKET", "PRODUKTY", "BI-BI",
                                                  "IP LYASHCHENKO L.V.", "WWW.1PARTS.RU", "IP SHASHKIN O V",  # IP SHASHKIN O V - внутренние перемещения, но я не уверен, что это так должно быть
                                                  "VSEINSTRUMENTI.RU")  # VSEINSTRUMENTI.RU - прочее при притоке (2223,00 07.06)
-contribution_of_money_by_the_owner_search_words = ()
-returns_income_search_words = ()
+contribution_of_money_by_the_owner_search_words = ()  # Пустой список ключевых слов для статьи Внесение ДС собственником
+returns_income_search_words = ("ВОЗВРАТ ОШИБОЧНО ПЕРЕЧИСЛЕННЫХ СРЕДСТВ НДС НЕ ОБЛАГ.", )  # Пустой список ключевых слов для статьи Возвраты - приток
 caching_search_words = ("СТАЛЬНОЕ СЕРДЦЕ", 'ООО "ТЕХКОМ"')
 marketing_search_words = ("продвижению", )
-providing_bidding_search_words = ()
-education_search_words = ("за обучение", "за образовательные услуги", "ЦЗП") # Еще не добавил
+providing_bidding_search_words = ("обеспечение заявки", )  # Пустой список ключевых слов для статьи FF
+education_search_words = ("за обучение", "за образовательные услуги", "ЦЗП")
 sdek_search_words = ("СДЭК", )
-insurance_contributions_with_salary = ()
-packaging_search_words = ()
+insurance_contributions_with_salary = () # Пустой список ключевых слов для статьи Страховые взносы с ЗП
+packaging_search_words = ()  # Пустой список ключевых слов для статьи Упаковка
 wildberries_search_words = ("ВАЙЛДБЕРРИЗ", )
 communication_services_search_words = ("Билайн", "beeline", "МОРТОН ТЕЛЕКОМ", "КАНТРИКОМ")
 fuel_search_words = ("GAZPROMNEFT", "LUKOIL.AZS", "RNAZK ROSNEFT", "Газпромнефть",
                      "AZS", "АЗС", "Нефтьмагистраль", "Лукойл")
 yandex_search_words = ("ЯНДЕКС", )
 ozon_search_words = ("ООО ИНТЕРНЕТ РЕШЕНИЯ", 'ООО "ИНТЕРНЕТ РЕШЕНИЯ"')
-sbermarket_search_words = ('"МАРКЕТПЛЕЙС"', "ПАО Сбербанк")  # Из-за того что много где написанн расчетный счет
-# ООО "АВТОТЕХГРУПП" Р/С 40702810140000011040 в ПАО Сбербанк г Москва
-# "ПАО Сбербанк" дает статью сбермаркет, в местах где должна быть оптовая продажа
-fraht_search_words = ("СМАРТЛОГИСТЕР", "транспортные услуги")  # ООО СМАРТЛОГИСТЕР не только фрахт, но и может быть Таможенные платежи
+sbermarket_search_words = ('"МАРКЕТПЛЕЙС"', "ПАО Сбербанк")
+fraht_search_words = ("СМАРТЛОГИСТЕР", "транспортные услуги")
 customs_payments_search_words = ("ФЕДЕРАЛЬНАЯ ТАМОЖЕННАЯ СЛУЖБА", "таможенного", "ТД", "ДТ")
 express_delivery_search_words = ("АВТОФЛОТ-СТОЛИЦА", "Деловые Линии", "Достависта",
                                  "доставки", "доставка", "грузоперевозки", "грузоперевозка", "перевозки", "перевозка")
@@ -111,7 +104,8 @@ articles_by_search_words_for_comments = {banking_services_search_words: "Бан�
                                          internal_movements_search_words: "Внутренние перемещения",
                                          loan_interest_repayment_search_words: "Погашение процентов по кредиту",
                                          taxes_usn_search_words: "Налоги УСН",
-                                         marketing_search_words: "Маркетинг"}
+                                         marketing_search_words: "Маркетинг",
+                                         providing_bidding_search_words: "Обеспечение торгов"}
 articles_by_search_words_for_counterpartys = {delivery_to_moscow_search_words: "Доставка до МСК",
                                               taxes_osno_search_words: "Налоги ОСНО",
                                               warehouse_rent_search_words: "Аренда склада",
@@ -147,6 +141,7 @@ class MainScreen(MDScreen):
         self.data_error_snackbar = None
         self.is_file_selected = False
         self.format = None
+        self.is_cny_statement = False  # Является ли выписка со счета в юанях
 
     # Выбор файла
     def open_file_manager(self):
@@ -253,6 +248,9 @@ class MainScreen(MDScreen):
                 is_document_section_started = True
 
             if is_document_section_started:
+                # Предварительная проверка в юанях ли выписка, путем поиска "CNY" в НазначениеПлатежа
+                self.check_if_statement_in_cny(line)
+
                 if line.startswith('Дата='):
                     date = line.replace('Дата=', "")
                     dates.append(date)
@@ -471,9 +469,7 @@ class MainScreen(MDScreen):
         if is_income:
             bank_name_type_index = 1
             legal_entity_index = 3
-            rate_search_words_index = 2
-            # Видимо в таблицу курс записываеться при переводе с карты ООО Модульбанк (юань),
-            # а у меня, наверное, ООО Модульбанк (руб), поэтому пока поменял индексы в обратную сторону (1, 2 на 2, 1)
+            rate_search_words_index = 1  # Поменял, чтобы везде был курс сделки (курс ЦБ не используется)
             counterparty_index = 4
         elif not is_income:
             bank_name_type_index = 2
@@ -536,6 +532,10 @@ class MainScreen(MDScreen):
         else:
             payment_type = f'{legal_entity} {values[bank_name_type_index]}'
 
+        # Добавление (юань) к концу типа оплаты, если выписка со счета в юанях
+        if self.is_cny_statement:
+            payment_type += " (юань)"
+
         # Проверка на тип отплаты "Налоговая копилка"
         if self.is_tax_piggy_bank(values[comment_index], is_income):
             payment_type = "Налоговая копилка"
@@ -545,21 +545,38 @@ class MainScreen(MDScreen):
         # Курс CNY и Сумма в CNY
         cny_exchange_rate = ""
         amount_in_cny = ""
-        # Курс указывается в комментарии. При притоке используется курс сделки, при оттоке курс ЦБ?
+        amount_in_rub = ""
+        # Курс указывается в комментарии.
         if any(search_word.lower() in values[comment_index].lower() for search_word in rate_search_words):
-            cny_exchange_rate, amount_in_cny = self.get_cny_exchange_rate_and_amount_in_cny(values[comment_index],
-                                                                                            values[sum_index],
-                                                                                            rate_search_words_index)
+            cny_exchange_rate = self.get_cny_exchange_rate(values[comment_index], rate_search_words_index)
+            # Если выписка уже в юанях
+            if self.is_cny_statement:
+                print("in")
+                amount_in_rub = self.get_amount_in_rub(values[comment_index], values[sum_index], cny_exchange_rate)
+                print("amount_in_rub: ", amount_in_rub)
+                amount_in_rub = f'{float(amount_in_rub):.2f}'.replace(".", ",")
+            # Если выписка не в юанях (в рублях)
+            else:
+                amount_in_cny = self.get_amount_in_cny(values[comment_index], values[sum_index], cny_exchange_rate)
+                amount_in_cny = f'{float(amount_in_cny):.2f}'.replace(".", ",")
             # Округляем и оставляем две цифры после запятой
             cny_exchange_rate = f'{float(cny_exchange_rate):.2f}'.replace(".", ",")
-            amount_in_cny = f'{float(amount_in_cny):.2f}'.replace(".", ",")
 
         income = ''  # Приток
         outcome = ''  # Отток
         if is_income:
-            income = str(values[sum_index]).replace(".", ",")  # Приток
+            # Если выписка в юанях - в приток записываем переведенное в рубли значение
+            if self.is_cny_statement:
+                income = amount_in_rub
+                amount_in_cny = str(values[sum_index]).replace(".", ",")
+            else:
+                income = str(values[sum_index]).replace(".", ",")  # Приток
         elif not is_income:
-            outcome = str(values[sum_index]).replace(".", ",")  # Отток
+            if self.is_cny_statement:
+                outcome = amount_in_rub
+                amount_in_cny = str(values[sum_index]).replace(".", ",")
+            else:
+                outcome = str(values[sum_index]).replace(".", ",")  # Отток
 
         counterparty = values[counterparty_index]  # Контрагент (Плательщик1/Получатель1)
 
@@ -605,9 +622,9 @@ class MainScreen(MDScreen):
         # Если есть фраза 'налоговая копилка' в комментарии и идет приток денег
             return True
 
-    # Получаем курс юаней и сумму в юанях
+    # Получаем курс юаней
     @staticmethod
-    def get_cny_exchange_rate_and_amount_in_cny(comment_string, amount_in_rub, rate_search_words_index):
+    def get_cny_exchange_rate(comment_string, rate_search_words_index):
         # Находим конец слов "Курс сделки " или "курс ЦБ "
         rate_start_index = comment_string.find(rate_search_words[rate_search_words_index]) + len(
             rate_search_words[rate_search_words_index]) + 1
@@ -618,14 +635,33 @@ class MainScreen(MDScreen):
                 if not character == ("." or ","):
                     rate_end_index = rate_start_index + index
                     cny_exchange_rate = str(comment_string[rate_start_index:rate_end_index])  # Курс CNY
-                    amount_in_cny = str(float(amount_in_rub.replace(",", ".")) /
-                                        float(cny_exchange_rate.replace(",", ".")))  # Сумма в CNY
-                    return cny_exchange_rate, amount_in_cny
+                    return cny_exchange_rate
         # Если конец числа не найден, т.к. строка закончилось
         cny_exchange_rate = str(comment_string[rate_start_index:])  # Курс CNY
+        return cny_exchange_rate
+
+    # Получаем сумму в юанях из рублей
+    @staticmethod
+    def get_amount_in_cny(comment_string, amount_in_rub, cny_exchange_rate):
         amount_in_cny = str(float(amount_in_rub.replace(",", ".")) /
                             float(cny_exchange_rate.replace(",", ".")))  # Сумма в CNY
-        return cny_exchange_rate, amount_in_cny
+        return amount_in_cny
+
+    # Получаем сумму в рублях из юаней
+    @staticmethod
+    def get_amount_in_rub(comment_string, amount_in_cny, cny_exchange_rate):
+        amount_in_rub = str(float(amount_in_cny.replace(",", ".")) *
+                            float(cny_exchange_rate.replace(",", ".")))  # Сумма в RUB
+        return amount_in_rub
+
+    # Проверяем в юанях ли выписка, путем поиска "CNY" в НазначениеПлатежа
+    # Но возможно, что комментария с "CNY" может не быть в выписке, которая является выпиской в юанях
+    def check_if_statement_in_cny(self, line):
+        if line.startswith('НазначениеПлатежа='):
+            if "CNY" in line:
+                self.is_cny_statement = True
+            else:
+                self.is_cny_statement = False
 
     # Получение статьи через поисковые слова в комментариях или контрагенте
     @staticmethod
@@ -672,9 +708,6 @@ class MainScreen(MDScreen):
                            for search_word in search_words_and_article[0]):
                         values_to_return.append(search_words_and_article[1])
 
-            #print(comment_string, " / ",counterparty_string)
-            #print(values_to_return)
-
             # Возвращаем статью, которая идет раньше в порядке приоритета или возращаем статьи через "/"
             if values_to_return != []:
                 # Убираем дубликаты
@@ -687,73 +720,14 @@ class MainScreen(MDScreen):
                 return '/'.join(values_to_return)
             else:
                 return ""
-
-            '''
-            if any(search_word.lower() in comment_string.lower() for search_word in banking_services_search_words):
-                return "Банковское обслуживание и комиссии"
-            elif any(search_word.lower() in comment_string.lower() for search_word in rate_search_words):
-                return "Обмен валют"
-            elif any(search_word.lower() in comment_string.lower() for search_word in salary_fixed_search_words):
-                return "Зарплата - фикс"
-            elif any(search_word.lower() in comment_string.lower() for search_word in withdrawal_of_money_by_the_owner_search_words):
-                if not is_income:
-                    return "Вывод ДС собственником"  # Не обязательно
-                elif is_income:
-                    return "Внутренние перемещения"  # Не обязательно
-                    # Или прочее
-            elif any(search_word.lower() in comment_string.lower() for search_word in internal_movements_search_words):
-                return "Внутренние перемещения"
-            elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
-                     for search_word in communication_services_search_words):
-                return "Услуги связи и Интернет"
-            elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
-                     for search_word in fuel_search_words):
-                return "Топливо"
-            elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
-                     for search_word in customs_payments_search_words):
-                return "Таможенные платежи"
-            elif any(search_word.lower() in counterparty_string.lower()
-                     for search_word in delivery_to_moscow_search_words):
-                return "Доставка до МСК"
-            elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
-                     for search_word in express_delivery_search_words):
-                return "Курьерская доставка"
-            elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
-                     for search_word in accounting_search_words):
-                return "Бухгалтерия"
-            elif any(search_word.lower() in (" ".join([comment_string.lower(), counterparty_string.lower()]))
-                     for search_word in purchase_or_sale_search_words):
-                if is_income:
-                    return "Оптовые продажи"
-                elif not is_income:
-                    return "Закупка товара"
-            elif any(search_word.lower() in counterparty_string.lower() for search_word in taxes_osno_search_words):
-                return "Налоги ОСНО"
-            elif any(search_word.lower() in counterparty_string.lower() for search_word in warehouse_rent_search_words):
-                return "Аренда склада"
-            elif any(search_word.lower() in comment_string.lower() for search_word in loan_interest_repayment_search_words):
-                return "Погашение процентов по кредиту"
-            elif any(search_word.lower() in counterparty_string.lower() for search_word in yandex_search_words):
-                return "Я.Маркет"
-            elif any(search_word.lower() in counterparty_string.lower() for search_word in ozon_search_words):
-                return "Ozon"
-            elif any(search_word.lower() in counterparty_string.lower() for search_word in sbermarket_search_words):
-                return "Сбермаркет"
-            elif any(search_word.lower() in counterparty_string.lower() for search_word in fraht_search_words):
-                return "Фрахт"  # ООО СМАРТЛОГИСТЕР не только фрахт, но и может быть Таможенные платежи
-            elif any(search_word.lower() in counterparty_string.lower() for search_word in other_search_words):
-                return "Прочее"
-            else:
-                return ""
-            '''
         else:
             return ""
 
     # Поиск следующей свободной строки в таблице
     @staticmethod
-    def next_available_row(worksheet):  # Видимо не учитывает пропущенные пустые строки
-        str_list = list(filter(None, worksheet.col_values(1)))
-        return len(str_list) + 1
+    def next_available_row(worksheet):
+        # Смотрим по первой колонке
+        return len(worksheet.col_values(1))+1
 
     # Работа с гугл таблицами
     def upload_to_googledrive(self):
