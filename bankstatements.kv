@@ -1,3 +1,10 @@
+# Строка в меню настроек
+<CheckboxItem>
+    on_release: root.set_check(checkbox)
+
+    CheckboxLeftWidget:
+        id: checkbox
+
 <MainScreen>
     MDScreen:
         # Старая kivy кнопка под новой kivyMD кнопкой (у старой кнопки правильный перенос строки текста, а у новой красивый дизайн)
@@ -52,4 +59,14 @@
             size_hint: 0.66, 0.18
             on_release:
                 root.upload_to_googledrive()
+
+        # Кнопка настроек
+        MDIconButton:
+            icon: "cog-outline"
+            theme_icon_color: "Custom"
+            icon_color: "gray"
+            icon_size: app.bigger_font_size_value
+            pos_hint: {"center_x": .925, "center_y": .925}
+            on_release:
+                root.open_settings()
 

@@ -2,6 +2,10 @@ from kivymd.app import MDApp
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.snackbar import Snackbar
+from kivymd.uix.dialog import MDDialog
+from kivymd.uix.list import OneLineAvatarIconListItem
+from kivymd.uix.button import MDFlatButton
+
 import gspread
 import os
 from PyPDF2 import PdfReader
@@ -135,6 +139,10 @@ articles_by_search_words_for_comments_or_counterpartys_if_outcome = {purchase_or
 priority_order_of_articles = ("Зарплата - фикс", "Оптовые продажи", "Вывод ДС собственником", "Таможенные платежи",
                               "Фрахт", "Налоги УСН", "Налоги ОСНО", "Маркетинг", "Кэширование", )
 
+is_cny_statement = False  # Является ли выписка со счета в юанях
+is_cny_statement_manually = False  # Значение "является ли выписка со счета в юанях", установленное вручную в настройках
+show_article_options = False  # Настройка "показывать варианты статей через "/" или нет"
+
 class MainScreen(MDScreen):
     def __init__(self, **kwargs):
         super(MainScreen, self).__init__(**kwargs)
@@ -145,7 +153,7 @@ class MainScreen(MDScreen):
         self.data_error_snackbar = None
         self.is_file_selected = False
         self.format = None
-        self.is_cny_statement = False  # Является ли выписка со счета в юанях
+        self.settings_dialog = None  # Меню с настройками
 
     # Выбор файла
     def open_file_manager(self):
@@ -246,6 +254,12 @@ class MainScreen(MDScreen):
         payers_accounts = []  # ПлательщикСчет
         purposes_of_payments = []  # НазначениеПлатежа
 
+        global is_cny_statement
+        global is_cny_statement_manually
+        # Если в настройках вручную выбрано, что выписка в юанях - устанавливаем, что выписка в юанях.
+        # Если нет - обнуляем значение перед проверкой
+        is_cny_statement = is_cny_statement_manually
+
         is_document_section_started = False
         for line in self.lines:
             if line.startswith('СекцияДокумент='):
@@ -253,7 +267,8 @@ class MainScreen(MDScreen):
 
             if is_document_section_started:
                 # Предварительная проверка в юанях ли выписка, путем поиска "CNY" в НазначениеПлатежа
-                self.check_if_statement_in_cny(line)
+                if not is_cny_statement:
+                    is_cny_statement = self.check_if_statement_in_cny(line)
 
                 if line.startswith('Дата='):
                     date = line.replace('Дата=', "")
@@ -470,6 +485,8 @@ class MainScreen(MDScreen):
         return data_to_upload
 
     def get_values_depending_on_income_or_outcome(self, values, is_income):
+        global is_cny_statement
+
         if is_income:
             bank_name_type_index = 1
             legal_entity_index = 3
@@ -537,7 +554,7 @@ class MainScreen(MDScreen):
             payment_type = f'{legal_entity} {values[bank_name_type_index]}'
 
         # Добавление (юань) к концу типа оплаты, если выписка со счета в юанях
-        if self.is_cny_statement:
+        if is_cny_statement:
             payment_type += " (юань)"
 
         # Проверка на тип отплаты "Налоговая копилка"
@@ -554,7 +571,7 @@ class MainScreen(MDScreen):
         if any(search_word.lower() in values[comment_index].lower() for search_word in rate_search_words):
             cny_exchange_rate = self.get_cny_exchange_rate(values[comment_index], rate_search_words_index)
             # Если выписка уже в юанях
-            if self.is_cny_statement:
+            if is_cny_statement:
                 print("in")
                 amount_in_rub = self.get_amount_in_rub(values[comment_index], values[sum_index], cny_exchange_rate)
                 print("amount_in_rub: ", amount_in_rub)
@@ -570,13 +587,13 @@ class MainScreen(MDScreen):
         outcome = ''  # Отток
         if is_income:
             # Если выписка в юанях - в приток записываем переведенное в рубли значение
-            if self.is_cny_statement:
+            if is_cny_statement:
                 income = amount_in_rub
                 amount_in_cny = str(values[sum_index]).replace(".", ",")
             else:
                 income = str(values[sum_index]).replace(".", ",")  # Приток
         elif not is_income:
-            if self.is_cny_statement:
+            if is_cny_statement:
                 outcome = amount_in_rub
                 amount_in_cny = str(values[sum_index]).replace(".", ",")
             else:
@@ -663,13 +680,13 @@ class MainScreen(MDScreen):
     def check_if_statement_in_cny(self, line):
         if line.startswith('НазначениеПлатежа='):
             if "CNY" in line:
-                self.is_cny_statement = True
+                return True
             else:
-                self.is_cny_statement = False
+                return False
 
     # Получение статьи через поисковые слова в комментариях или контрагенте
-    @staticmethod
-    def get_article(comment_string, counterparty_string, is_income):
+    def get_article(self, comment_string, counterparty_string, is_income):
+        global show_article_options
 
         if comment_string or counterparty_string:
             values_to_return = []
@@ -716,12 +733,18 @@ class MainScreen(MDScreen):
             if values_to_return != []:
                 # Убираем дубликаты
                 values_to_return = list(set(values_to_return))
-                if len(values_to_return) > 1:
-                    for article in priority_order_of_articles:
-                        if article in values_to_return:
-                            return article
+                # Если не стоит галочка "Показывать все варианты статей"
+                print("show_article_options: ", show_article_options)
+                if not show_article_options:
+                    if len(values_to_return) > 1:
+                        for article in priority_order_of_articles:
+                            if article in values_to_return:
+                                return article
+                        return '/'.join(values_to_return)
+                    else:
+                        return '/'.join(values_to_return)
+                else:
                     return '/'.join(values_to_return)
-                return '/'.join(values_to_return)
             else:
                 return ""
         else:
@@ -747,7 +770,7 @@ class MainScreen(MDScreen):
             required_values, is_sberbank = self.get_required_values_from_pdf()
             data_to_upload = self.get_data_to_upload_from_pdf(required_values, is_sberbank)
         if data_to_upload:  # Проверяем не пустой ли файл
-            # Добавить проверку, что в таблице хватает свободных строк      
+            # Добавить проверку, что в таблице хватает свободных строк
             worksheet.update(f"A{self.next_available_row(worksheet)}:{chr(ord('A') - 1 + len(data_to_upload[0]))}"
                              f"{self.next_available_row(worksheet) + len(data_to_upload)}", data_to_upload)
             # chr(ord('A')-1+len(data_to_upload[0])) - буква алфавита по номеру начиная с заглавной A
@@ -762,8 +785,43 @@ class MainScreen(MDScreen):
                                                     pos_hint={"center_x": 0.5, "center_y": 0.1})
             self.data_error_snackbar.open()
 
+    # Открыть окно настроек
+    def open_settings(self):
+        if not self.settings_dialog:
+            self.settings_dialog = MDDialog(
+                title="Настройки",
+                type="confirmation",
+                items=[
+                    CheckboxItem(text="Показывать все варианты статей"),
+                    CheckboxItem(text="Выписка в юанях"),
+                ],
+                buttons=[MDFlatButton(text="Закрыть",
+                                      on_release=lambda instance: self.settings_dialog.dismiss())
+                ],
+            )
+        self.settings_dialog.open()
+
+# Элемент (строка) в меню настроек
+class CheckboxItem(OneLineAvatarIconListItem):
+
+    def set_check(self, instance_check):
+        global show_article_options
+        global is_cny_statement_manually
+
+        if instance_check.active:
+            instance_check.active = False
+        else:
+            instance_check.active = True
+        if self.text == "Показывать все варианты статей":
+            show_article_options = instance_check.active
+        elif self.text == "Выписка в юанях":
+            is_cny_statement_manually = instance_check.active
+
+
 class BankStatementsApp(MDApp):
-    font_size_value = "25sp"  # Размер шрифта
+    font_size_value_int = 25  # Размер шрифта цифрой
+    font_size_value = f"{font_size_value_int}sp"  # Размер шрифта
+    bigger_font_size_value = f"{font_size_value_int*1.5}sp"  # Больший размер шрифта
 
     def build(self):
         # Устанавливаем название и иконку окна приложения
