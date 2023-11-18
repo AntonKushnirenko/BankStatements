@@ -53,11 +53,12 @@ contribution_of_money_by_the_owner_search_words = ()  # Пустой списо�
 returns_income_search_words = ("ВОЗВРАТ ОШИБОЧНО ПЕРЕЧИСЛЕННЫХ СРЕДСТВ НДС НЕ ОБЛАГ.", )  # Пустой список ключевых слов для статьи Возвраты - приток
 caching_search_words = ("СТАЛЬНОЕ СЕРДЦЕ", 'ООО "ТЕХКОМ"')
 marketing_search_words = ("продвижению", )
-providing_bidding_search_words = ("обеспечение заявки", )  # Пустой список ключевых слов для статьи FF
+providing_bidding_search_words = ("обеспечение заявки", )  # Пустой список ключевых слов для статьи Обеспечение торгов
 education_search_words = ("за обучение", "за образовательные услуги", "ЦЗП")
 sdek_search_words = ("СДЭК", )
-insurance_contributions_with_salary = () # Пустой список ключевых слов для статьи Страховые взносы с ЗП
-packaging_search_words = ()  # Пустой список ключевых слов для статьи Упаковка
+insurance_contributions_with_salary = ("страхования", ) # Пустой список ключевых слов для статьи Страховые взносы с ЗП
+# Две идентичные строчки на 52 рубля (за июнь и август) имеют разные статьи: одна Налоги ОСНО, другая Страховые взнносы
+packaging_search_words = ("упаков", )  # Пустой список ключевых слов для статьи Упаковка
 wildberries_search_words = ("ВАЙЛДБЕРРИЗ", )
 communication_services_search_words = ("Билайн", "beeline", "МОРТОН ТЕЛЕКОМ", "КАНТРИКОМ")
 fuel_search_words = ("GAZPROMNEFT", "LUKOIL.AZS", "RNAZK ROSNEFT", "Газпромнефть",
@@ -105,7 +106,8 @@ articles_by_search_words_for_comments = {banking_services_search_words: "Бан�
                                          loan_interest_repayment_search_words: "Погашение процентов по кредиту",
                                          taxes_usn_search_words: "Налоги УСН",
                                          marketing_search_words: "Маркетинг",
-                                         providing_bidding_search_words: "Обеспечение торгов"}
+                                         providing_bidding_search_words: "Обеспечение торгов",
+                                         packaging_search_words: "Упаковка"}
 articles_by_search_words_for_counterpartys = {delivery_to_moscow_search_words: "Доставка до МСК",
                                               taxes_osno_search_words: "Налоги ОСНО",
                                               warehouse_rent_search_words: "Аренда склада",
@@ -115,7 +117,8 @@ articles_by_search_words_for_counterpartys = {delivery_to_moscow_search_words: "
                                               other_search_words: "Прочее",
                                               wildberries_search_words: "Wildberries",
                                               sdek_search_words: "СДЭК",
-                                              caching_search_words: "Кэширование"}
+                                              caching_search_words: "Кэширование",
+                                              insurance_contributions_with_salary: "Страховые взносы с ЗП"}
 articles_by_search_words_for_comments_or_counterpartys = {communication_services_search_words: "Услуги связи и Интернет",
                                                           fuel_search_words: "Топливо",
                                                           customs_payments_search_words: "Таможенные платежи",
@@ -123,7 +126,8 @@ articles_by_search_words_for_comments_or_counterpartys = {communication_services
                                                           accounting_search_words: "Бухгалтерия",
                                                           fraht_search_words: "Фрахт",
                                                           education_search_words: "Обучение"}
-articles_by_search_words_for_comments_if_income = {withdrawal_of_money_by_the_owner_search_words: "Внутренние перемещения"}
+articles_by_search_words_for_comments_if_income = {withdrawal_of_money_by_the_owner_search_words: "Внутренние перемещения",
+                                                   returns_income_search_words: "Возвраты - приток"}
 articles_by_search_words_for_comments_if_outcome = {withdrawal_of_money_by_the_owner_search_words: "Вывод ДС собственником"}
 articles_by_search_words_for_comments_or_counterpartys_if_income = {purchase_or_sale_search_words: "Оптовые продажи"}
 articles_by_search_words_for_comments_or_counterpartys_if_outcome = {purchase_or_sale_search_words: "Закупка товара"}
