@@ -87,7 +87,7 @@ warehouse_rent_search_words = ("Жилин", "Нагоркин")
 salary_fixed_search_words = ("заработная плата", "У. НАТАЛЬЯ ВАЛЕРЬЕВНА", "С. ДМИТРИЙ ВАДИМОВИЧ")
 loan_interest_repayment_search_words = ("Погашение просроч. процентов", "Оплата штрафа за проср. основной долг",
                                         "Оплата штрафа за проср. проценты", "просроч.", "проср.")
-other_search_words = ("ЖИВОЙ", "АДВОКАТ")
+other_search_words = ("ЖИВОЙ", "АДВОКАТ")  # Много не доделано, где долэно быть прочее
 alpha_bank_search_words = ("АЛЬФА-БАНК", )
 modul_bank_search_words = ("МОДУЛЬБАНК", )
 sberbank_comments_search_words = ("P2P_byPhone_tinkoff-bank", "ATM", "Тинькофф Банк", "oplata_beeline",
@@ -747,6 +747,7 @@ class MainScreen(MDScreen):
             required_values, is_sberbank = self.get_required_values_from_pdf()
             data_to_upload = self.get_data_to_upload_from_pdf(required_values, is_sberbank)
         if data_to_upload:  # Проверяем не пустой ли файл
+            # Добавить проверку, что в таблице хватает свободных строк      
             worksheet.update(f"A{self.next_available_row(worksheet)}:{chr(ord('A') - 1 + len(data_to_upload[0]))}"
                              f"{self.next_available_row(worksheet) + len(data_to_upload)}", data_to_upload)
             # chr(ord('A')-1+len(data_to_upload[0])) - буква алфавита по номеру начиная с заглавной A
