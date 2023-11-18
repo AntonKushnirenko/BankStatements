@@ -827,6 +827,8 @@ class BankStatementsApp(MDApp):
         # Устанавливаем название и иконку окна приложения
         self.title = 'Выгрузка банковских выписок в Google Таблицу "АРТЕЛЬ/ФИНАНСЫ"'
         self.icon = self.resource_path('artel_icon.png')
+        # Цветовая палитра
+        self.theme_cls.primary_palette = "BlueGray"
         return MainScreen()
 
     # Для создания exe файла
