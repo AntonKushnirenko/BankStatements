@@ -59,7 +59,7 @@ caching_search_words = ("СТАЛЬНОЕ СЕРДЦЕ", 'ООО "ТЕХКОМ"'
 marketing_search_words = ("продвижению", )
 providing_bidding_search_words = ("обеспечение заявки", )  # Обеспечение торгов
 education_search_words = ("за обучение", "за образовательные услуги", "ЦЗП")
-sdek_search_words = ("СДЭК", )ра
+sdek_search_words = ("СДЭК", )
 insurance_contributions_with_salary = ("страхования", ) # Стховые взносы с ЗП
 # Две идентичные строчки на 52 рубля (за июнь и август) имеют разные статьи: одна Налоги ОСНО, другая Страховые взнносы
 packaging_search_words = ("упаков", )  # Упаковка
