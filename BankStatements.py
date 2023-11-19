@@ -54,15 +54,15 @@ withdrawal_of_money_by_the_owner_search_words = ("Сбербанк Онлайн 
                                                  "IP LYASHCHENKO L.V.", "WWW.1PARTS.RU", "IP SHASHKIN O V",  # IP SHASHKIN O V - внутренние перемещения, но я не уверен, что это так должно быть
                                                  "VSEINSTRUMENTI.RU")  # VSEINSTRUMENTI.RU - прочее при притоке (2223,00 07.06)
 contribution_of_money_by_the_owner_search_words = ()  # Пустой список ключевых слов для статьи Внесение ДС собственником
-returns_income_search_words = ("ВОЗВРАТ ОШИБОЧНО ПЕРЕЧИСЛЕННЫХ СРЕДСТВ НДС НЕ ОБЛАГ.", )  # Пустой список ключевых слов для статьи Возвраты - приток
+returns_income_search_words = ("ВОЗВРАТ ОШИБОЧНО ПЕРЕЧИСЛЕННЫХ СРЕДСТВ", "возврат")  # Возвраты - приток
 caching_search_words = ("СТАЛЬНОЕ СЕРДЦЕ", 'ООО "ТЕХКОМ"')
 marketing_search_words = ("продвижению", )
-providing_bidding_search_words = ("обеспечение заявки", )  # Пустой список ключевых слов для статьи Обеспечение торгов
+providing_bidding_search_words = ("обеспечение заявки", )  # Обеспечение торгов
 education_search_words = ("за обучение", "за образовательные услуги", "ЦЗП")
-sdek_search_words = ("СДЭК", )
-insurance_contributions_with_salary = ("страхования", ) # Пустой список ключевых слов для статьи Страховые взносы с ЗП
+sdek_search_words = ("СДЭК", )ра
+insurance_contributions_with_salary = ("страхования", ) # Стховые взносы с ЗП
 # Две идентичные строчки на 52 рубля (за июнь и август) имеют разные статьи: одна Налоги ОСНО, другая Страховые взнносы
-packaging_search_words = ("упаков", )  # Пустой список ключевых слов для статьи Упаковка
+packaging_search_words = ("упаков", )  # Упаковка
 wildberries_search_words = ("ВАЙЛДБЕРРИЗ", )
 communication_services_search_words = ("Билайн", "beeline", "МОРТОН ТЕЛЕКОМ", "КАНТРИКОМ")
 fuel_search_words = ("GAZPROMNEFT", "LUKOIL.AZS", "RNAZK ROSNEFT", "Газпромнефть",
@@ -91,7 +91,7 @@ warehouse_rent_search_words = ("Жилин", "Нагоркин")
 salary_fixed_search_words = ("заработная плата", "У. НАТАЛЬЯ ВАЛЕРЬЕВНА", "С. ДМИТРИЙ ВАДИМОВИЧ")
 loan_interest_repayment_search_words = ("Погашение просроч. процентов", "Оплата штрафа за проср. основной долг",
                                         "Оплата штрафа за проср. проценты", "просроч.", "проср.")
-other_search_words = ("ЖИВОЙ", "АДВОКАТ")  # Много не доделано, где долэно быть прочее
+other_search_words = ("ЖИВОЙ", "АДВОКАТ", )  # Прочее почему-то часто "возврат", но я не стал добавлять, ведь есть "Возврат - приток"
 alpha_bank_search_words = ("АЛЬФА-БАНК", )
 modul_bank_search_words = ("МОДУЛЬБАНК", )
 sberbank_comments_search_words = ("P2P_byPhone_tinkoff-bank", "ATM", "Тинькофф Банк", "oplata_beeline",
@@ -151,6 +151,8 @@ class MainScreen(MDScreen):
         self.lines = []  # Строки текстового файла
         self.not_txt_snackbar = None
         self.data_error_snackbar = None
+        self.upload_error_snackbar = None
+        self.not_enough_rows_error_snackbar = None
         self.is_file_selected = False
         self.format = None
         self.settings_dialog = None  # Меню с настройками
@@ -377,7 +379,6 @@ class MainScreen(MDScreen):
                         sums_of_money.append(amount_of_money)
 
         required_values = list(map(list, zip(dates, operation_names, sums_of_money)))
-        print(required_values)
         return required_values, is_sberbank
 
     # Формируем данные которые будем уже непосредственно вносить в таблицу
@@ -394,7 +395,7 @@ class MainScreen(MDScreen):
 
             payment_date = values[0]  # Дата оплаты
 
-            # Эти значения я пока не понял как получать
+            # Эти значения пока никак не получаются
             accrual_date = ""  # Дата начисления. Используется при налогах (страхование)
             nds = ""  # НДС 
             project = ""  # Проект
@@ -415,7 +416,7 @@ class MainScreen(MDScreen):
         for values in required_values:
             payment_date = values[0]  # Дата оплаты
 
-            # Эти значения я пока не понял как получать
+            # Эти значения пока никак не получаются
             accrual_date = ""  # Дата начисления. Используется при налогах (страхование)
             nds = ""  # НДС
             project = ""  # Проект
@@ -572,9 +573,7 @@ class MainScreen(MDScreen):
             cny_exchange_rate = self.get_cny_exchange_rate(values[comment_index], rate_search_words_index)
             # Если выписка уже в юанях
             if is_cny_statement:
-                print("in")
                 amount_in_rub = self.get_amount_in_rub(values[comment_index], values[sum_index], cny_exchange_rate)
-                print("amount_in_rub: ", amount_in_rub)
                 amount_in_rub = f'{float(amount_in_rub):.2f}'.replace(".", ",")
             # Если выписка не в юанях (в рублях)
             else:
@@ -676,7 +675,8 @@ class MainScreen(MDScreen):
         return amount_in_rub
 
     # Проверяем в юанях ли выписка, путем поиска "CNY" в НазначениеПлатежа
-    # Но возможно, что комментария с "CNY" может не быть в выписке, которая является выпиской в юанях
+    # Но возможно, что комментария с "CNY" может не быть в выписке,
+    # которая является выпиской в юанях, поэтому добавлены настройки, где можно указать, что выписка в юанях вручную
     def check_if_statement_in_cny(self, line):
         if line.startswith('НазначениеПлатежа='):
             if "CNY" in line:
@@ -735,7 +735,6 @@ class MainScreen(MDScreen):
                 # Убираем дубликаты
                 values_to_return = list(set(values_to_return))
                 # Если не стоит галочка "Показывать все варианты статей"
-                print("show_article_options: ", show_article_options)
                 if not show_article_options:
                     if len(values_to_return) > 1:
                         for article in priority_order_of_articles:
@@ -762,6 +761,7 @@ class MainScreen(MDScreen):
         service_account = gspread.service_account(filename=BankStatementsApp.resource_path(service_account_filename))
         spreadsheet = service_account.open(google_sheet_name)
         worksheet = spreadsheet.worksheet(worksheet_name)
+        app = BankStatementsApp.get_running_app()
 
         if self.format == "txt":
             required_values = self.get_required_values()
@@ -771,15 +771,35 @@ class MainScreen(MDScreen):
             required_values, is_sberbank = self.get_required_values_from_pdf()
             data_to_upload = self.get_data_to_upload_from_pdf(required_values, is_sberbank)
         if data_to_upload:  # Проверяем не пустой ли файл
-            # Добавить проверку, что в таблице хватает свободных строк
-            worksheet.update(f"A{self.next_available_row(worksheet)}:{chr(ord('A') - 1 + len(data_to_upload[0]))}"
-                             f"{self.next_available_row(worksheet) + len(data_to_upload)}", data_to_upload)
-            # chr(ord('A')-1+len(data_to_upload[0])) - буква алфавита по номеру начиная с заглавной A
+            # Проверка с выводом ошибки
+            try:
+                # Проверка, что в таблице хватает свободных строк
+                if (self.next_available_row(worksheet)-1 + len(data_to_upload) <= worksheet.row_count):
+                    worksheet.update(f"A{self.next_available_row(worksheet)}:{chr(ord('A') - 1 + len(data_to_upload[0]))}"
+                                 f"{self.next_available_row(worksheet) + len(data_to_upload)}", data_to_upload)
+                    # chr(ord('A')-1+len(data_to_upload[0])) - буква алфавита по номеру начиная с заглавной A
+                else:
+                    print("Ошибка: недостаточно свободных строк в таблице")
+                    # Вылезающее уведомление с ошибкой при выгрузке данных снизу
+                    if not self.not_enough_rows_error_snackbar:
+                        self.not_enough_rows_error_snackbar = Snackbar(text="Ошибка: недостаточно свободных строк в таблице",
+                                                              font_size=app.font_size_value,
+                                                              duration=3, size_hint_x=0.8,
+                                                              pos_hint={"center_x": 0.5, "center_y": 0.1})
+                    self.not_enough_rows_error_snackbar.open()
+            except Exception as e:
+                print("Ошибка: ", e)
+                # Вылезающее уведомление с ошибкой при выгрузке данных снизу
+                if not self.upload_error_snackbar:
+                    self.upload_error_snackbar = Snackbar(text=f"Ошибка: {e}",
+                                                        font_size=app.font_size_value,
+                                                        duration=3, size_hint_x=0.8,
+                                                        pos_hint={"center_x": 0.5, "center_y": 0.1})
+                self.upload_error_snackbar.open()
         else:
             print("Файл не выбран или содержимое отсутствует.")
             # Вылезающее уведомление с ошибкой данных выбранного файла снизу
             if not self.data_error_snackbar:
-                app = BankStatementsApp.get_running_app()
                 self.data_error_snackbar = Snackbar(text="Выбранный файл отсутствует или недействителен!",
                                                     font_size=app.font_size_value,
                                                     duration=3, size_hint_x=0.8,
