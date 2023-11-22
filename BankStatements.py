@@ -24,7 +24,7 @@ from kivy.resources import resource_add_path
 google_sheet_name = "Выписки"
 service_account_filename = "service_account.json"
 worksheet_name = "Лист1"  # Название листа (страницы), которое выбирается снизу таблицы.
-starting_directory = "/"
+starting_directory = "/выписки"
 
 # Поисковые слова
 ooo_search_words = ("ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО")
@@ -35,7 +35,7 @@ internal_movements_search_words = ("Перевод собственных ден
                                    "Перевод средств с расчетного счета на счет 'налоговая копилка'",
                                    "Возврат средств по договору займа от учредителя",
                                    "Перевод на свою карту", "перевод на собственную карту",
-                                   "перевод собственных средств",
+                                   "перевод собственных средств", "Перевод остатка денежных средств",
                                    "Сбербанк Онлайн перевод", "Прочие выплаты", "ATM", "Тинькофф Банк",
                                    "возврат долга по договору займа", "Перевод на свой счет в дргуой банк",
                                    "перевод своих средств", "взнос по договору займа",
@@ -51,9 +51,12 @@ withdrawal_of_money_by_the_owner_search_words = ("Сбербанк Онлайн 
                                                  "ZOOMAGAZIN", "MYASNAYA LAVKA", "OKEY", "РЕСО-Гарантия", "SITI LAJF",
                                                  "PRAZHSKAYA", "MAGBURGER", "TEREMOK", "IP Badalyan LR", "owl Bean",
                                                  "FISHBAZAAR", "RYNOK", "SUPERMARKET", "PRODUKTY", "BI-BI",
-                                                 "IP LYASHCHENKO L.V.", "WWW.1PARTS.RU", "IP SHASHKIN O V",  # IP SHASHKIN O V - внутренние перемещения, но я не уверен, что это так должно быть
+                                                 "IP LYASHCHENKO L.V.", "WWW.1PARTS.RU", "IP SHASHKIN O V",
+                                                 # IP SHASHKIN O V - внутренние перемещения, но я не уверен, что это так должно быть
                                                  "VSEINSTRUMENTI.RU")  # VSEINSTRUMENTI.RU - прочее при притоке (2223,00 07.06)
-contribution_of_money_by_the_owner_search_words = ()  # Пустой список ключевых слов для статьи Внесение ДС собственником
+contribution_of_money_by_the_owner_search_words = ("Перевод собственных средств",  # Внесение ДС собственником
+                                                   "Перевод средств с расчетного счета на счет 'налоговая копилка'",
+                                                   "Перевод остатка денежных средств", )
 returns_income_search_words = ("ВОЗВРАТ ОШИБОЧНО ПЕРЕЧИСЛЕННЫХ СРЕДСТВ", "возврат")  # Возвраты - приток
 caching_search_words = ("СТАЛЬНОЕ СЕРДЦЕ", 'ООО "ТЕХКОМ"')
 marketing_search_words = ("продвижению", )
@@ -83,15 +86,17 @@ purchase_or_sale_search_words = ("за стяжки", "за стяжку", "За
                                  "за нейлоновые стяжки", "за материалы", "за квадрокоптер",
                                  "Флекс", "Мегуна", "19 ДЮЙМОВ", "СВЯЗЬГАРАНТ", "Техтранссервис", "ВИССАМ",
                                  "СДС", "ВЕНЗА", "ФРЕШТЕЛ-МОСКВА", "Васильева", "СИАЙГРУПП", "МВМ", "КОНТУР-ПАК",
-                                 "ЧИНЕЙКИНА", "ШАРАЕВА", "АВАЛОН", "МОСКАБЕЛЬ",
-                                 "ТИМОФЕЕВ", "БОРОДИН", "Приль")
+                                 "ЧИНЕЙКИНА", "ШАРАЕВА", "АВАЛОН", "МОСКАБЕЛЬ", "ЗАВОД ТРУД",
+                                 "ТИМОФЕЕВ", "БОРОДИН", "Приль", )
 taxes_osno_search_words = ("Казначейство России (ФНС России)", "УФК")
 taxes_usn_search_words = ("Налог при упрощенной системе налогообложения", "усн")
 warehouse_rent_search_words = ("Жилин", "Нагоркин")
-salary_fixed_search_words = ("заработная плата", "У. НАТАЛЬЯ ВАЛЕРЬЕВНА", "С. ДМИТРИЙ ВАДИМОВИЧ")
+salary_fixed_search_words = ("заработная плата", "У. НАТАЛЬЯ ВАЛЕРЬЕВНА", "С. ДМИТРИЙ ВАДИМОВИЧ",
+                             "Для зачисления на счет Солдатова Александра Игоревича аванс", )
 loan_interest_repayment_search_words = ("Погашение просроч. процентов", "Оплата штрафа за проср. основной долг",
                                         "Оплата штрафа за проср. проценты", "просроч.", "проср.")
-other_search_words = ("ЖИВОЙ", "АДВОКАТ", )  # Прочее почему-то часто "возврат", но я не стал добавлять, ведь есть "Возврат - приток"
+other_search_words = ("ЖИВОЙ", "АДВОКАТ", "РСЦ", )
+# Прочее почему-то часто "возврат", но я не стал добавлять, ведь есть "Возврат - приток"
 alpha_bank_search_words = ("АЛЬФА-БАНК", )
 modul_bank_search_words = ("МОДУЛЬБАНК", )
 sberbank_comments_search_words = ("P2P_byPhone_tinkoff-bank", "ATM", "Тинькофф Банк", "oplata_beeline",
@@ -131,13 +136,15 @@ articles_by_search_words_for_comments_or_counterpartys = {communication_services
                                                           fraht_search_words: "Фрахт",
                                                           education_search_words: "Обучение"}
 articles_by_search_words_for_comments_if_income = {withdrawal_of_money_by_the_owner_search_words: "Внутренние перемещения",
-                                                   returns_income_search_words: "Возвраты - приток"}
+                                                   returns_income_search_words: "Возвраты - приток",
+                                                   contribution_of_money_by_the_owner_search_words: "Внесение ДС собственником"}
 articles_by_search_words_for_comments_if_outcome = {withdrawal_of_money_by_the_owner_search_words: "Вывод ДС собственником"}
 articles_by_search_words_for_comments_or_counterpartys_if_income = {purchase_or_sale_search_words: "Оптовые продажи"}
 articles_by_search_words_for_comments_or_counterpartys_if_outcome = {purchase_or_sale_search_words: "Закупка товара"}
 
-priority_order_of_articles = ("Зарплата - фикс", "Оптовые продажи", "Вывод ДС собственником", "Таможенные платежи",
-                              "Фрахт", "Налоги УСН", "Налоги ОСНО", "Маркетинг", "Кэширование", )
+priority_order_of_articles = ("Зарплата - фикc", "Оптовые продажи", "Налоги УСН", "Налоги ОСНО",
+                              "Вывод ДС собственником", "Таможенные платежи", "СДЭК", "Кэширование",
+                              "Возвраты - приток", "Маркетинг", )
 
 is_cny_statement = False  # Является ли выписка со счета в юанях
 is_cny_statement_manually = False  # Значение "является ли выписка со счета в юанях", установленное вручную в настройках
@@ -233,7 +240,6 @@ class MainScreen(MDScreen):
         for page in reader.pages:
             text += page.extract_text() + "\n"
         self.lines = text.split("\n")
-        print(self.lines)
 
     # Получаем наш расчетный счет, на который идет приток денег
     def get_income_checking_account(self):
@@ -776,7 +782,8 @@ class MainScreen(MDScreen):
                 # Проверка, что в таблице хватает свободных строк
                 if (self.next_available_row(worksheet)-1 + len(data_to_upload) <= worksheet.row_count):
                     worksheet.update(f"A{self.next_available_row(worksheet)}:{chr(ord('A') - 1 + len(data_to_upload[0]))}"
-                                 f"{self.next_available_row(worksheet) + len(data_to_upload)}", data_to_upload)
+                                     f"{self.next_available_row(worksheet) + len(data_to_upload)}",
+                                     data_to_upload, value_input_option='USER_ENTERED')
                     # chr(ord('A')-1+len(data_to_upload[0])) - буква алфавита по номеру начиная с заглавной A
                 else:
                     print("Ошибка: недостаточно свободных строк в таблице")
