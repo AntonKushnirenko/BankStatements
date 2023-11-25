@@ -1,11 +1,3 @@
-# Строка в меню настроек
-<CheckboxItem>
-    on_release: root.set_check(checkbox)
-
-    CheckboxLeftWidget:
-        id: checkbox
-        color_active: (0, .7, 0.35, 1)
-
 <MainScreen>
     MDScreen:
         # Старая kivy кнопка под новой kivyMD кнопкой (у старой кнопки правильный перенос строки текста, а у новой красивый дизайн)
@@ -71,3 +63,57 @@
             on_release:
                 root.open_settings()
 
+# Строка в меню настроек
+<CheckboxItem>
+    on_release: root.set_check(checkbox)
+
+    CheckboxLeftWidget:
+        id: checkbox
+        color_active: (0, .7, 0.35, 1)
+
+<SettingsDialogContent>
+    size_hint_y: None
+    height: dp(app.window_size[1]*0.5)
+    settings_list: settings_list
+
+    MDList:
+        id: settings_list
+
+        show_article_options: show_article_options
+        is_cny_statement: is_cny_statement
+        starting_directory: starting_directory
+        google_sheet_name: google_sheet_name
+        worksheet_name: worksheet_name
+        reset_settings: reset_settings
+
+        CheckboxItem:
+            id: show_article_options
+            text: "Показывать все варианты статей"
+
+        CheckboxItem:
+            id: is_cny_statement
+            text: "Выписка в юанях"
+
+        MDTextField:
+            id: starting_directory
+            multiline: False
+            hint_text: "Стартовая директория (например: /Users/UserName/Downloads)"
+            on_text_validate: root.update_settings("starting_directory", self.text)
+
+        MDTextField:
+            id: google_sheet_name
+            multiline: False
+            hint_text: "Название таблицы"
+            on_text_validate: root.update_settings("google_sheet_name", self.text)
+
+        MDTextField:
+            id: worksheet_name
+            multiline: False
+            hint_text: "Название листа"
+            on_text_validate: root.update_settings("worksheet_name", self.text)
+
+        MDFlatButton:
+            id: reset_settings
+            text: "Сбросить настройки"
+            font_size: app.smaller_font_size_value
+            on_release: root.reset_settings()

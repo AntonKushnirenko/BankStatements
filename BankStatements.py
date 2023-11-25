@@ -1,10 +1,12 @@
 from kivymd.app import MDApp
+
 from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.snackbar import Snackbar
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.list import OneLineAvatarIconListItem
 from kivymd.uix.button import MDFlatButton
+from kivymd.uix.recycleview import MDRecycleView
 
 import gspread
 import os
@@ -21,10 +23,36 @@ Window.minimum_width, Window.minimum_height = window_size
 import sys
 from kivy.resources import resource_add_path
 
-google_sheet_name = "Выписки"
+# Для сохранения настроек
+from kivy.storage.jsonstore import JsonStore
+store = JsonStore("settings.json")
+
+# Информация о таблице
+google_sheet_name = "Выписки"  # "АРТЭЛЬ/ФИНАНСЫ"
+google_sheet_name_default = google_sheet_name  # Значение на случай сброса настроек
 service_account_filename = "service_account.json"
-worksheet_name = "Лист1"  # Название листа (страницы), которое выбирается снизу таблицы.
-starting_directory = "/выписки"
+worksheet_name = "Лист1"  # Название листа (страницы), которое выбирается снизу таблицы. "БД ДДС"
+worksheet_name_default = worksheet_name
+# Начальная директория файлового менеджера
+starting_directory = "/"
+starting_directory_default = starting_directory
+
+is_cny_statement = False  # Является ли выписка со счета в юанях
+is_cny_statement_manually = False  # Значение "является ли выписка со счета в юанях", установленное вручную в настройках
+show_article_options = False  # Настройка "показывать варианты статей через "/" или нет"
+
+# Получаем название переменной в строке
+def get_variable_name(variable):
+    for name in globals():
+        if id(globals()[name]) == id(variable):
+            return name
+
+# Получаем сохранненные в настройках значения
+settings_items = [is_cny_statement_manually, show_article_options, google_sheet_name, worksheet_name, starting_directory]
+for item in settings_items:
+    item_name = get_variable_name(item)
+    if store.exists(str(item_name)):
+        globals()[item_name] = store.get(item_name)[item_name]
 
 # Поисковые слова
 ooo_search_words = ("ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО")
@@ -146,10 +174,6 @@ priority_order_of_articles = ("Зарплата - фикc", "Оптовые пр
                               "Вывод ДС собственником", "Таможенные платежи", "СДЭК", "Кэширование",
                               "Возвраты - приток", "Маркетинг", )
 
-is_cny_statement = False  # Является ли выписка со счета в юанях
-is_cny_statement_manually = False  # Значение "является ли выписка со счета в юанях", установленное вручную в настройках
-show_article_options = False  # Настройка "показывать варианты статей через "/" или нет"
-
 class MainScreen(MDScreen):
     def __init__(self, **kwargs):
         super(MainScreen, self).__init__(**kwargs)
@@ -160,6 +184,8 @@ class MainScreen(MDScreen):
         self.data_error_snackbar = None
         self.upload_error_snackbar = None
         self.not_enough_rows_error_snackbar = None
+        self.google_sheet_name_error_snackbar = None
+        self.worksheet_name_error_snackbar = None
         self.is_file_selected = False
         self.format = None
         self.settings_dialog = None  # Меню с настройками
@@ -512,34 +538,6 @@ class MainScreen(MDScreen):
         comment_index = 8
         sum_index = 5
 
-        '''
-        # recipient_index = 4
-
-        # Тип оплаты (ПолучательБанк1/ПлательщикБанк1)
-        # Нужно еще доделать подписи валюты в скобочках: (руб.), (юань), (usd)
-        if any(search_word.lower() in values[legal_entity_index].lower() for search_word in ooo_search_words):
-            # recipient_index = 4 - индекс Плательщик1, а мне всегда нужен Плательщик1
-            # Как оказалось - не всегда. kl_to_1c (8).txt: 05.06.2023 13605,00 Плательщик1 - ООО Яндекс,
-            # а должно быть ИП "Модуль банк", следовательно брать надо из
-            # Получатель1=Индивидуальный предприниматель Солдатов Александр Игоревич
-            payment_type_legal_entity = "ООО"
-            # Здесь нужно поменять на ИП/ООО Альфа-банк/Модуль-банк
-        elif any(search_word.lower() in values[legal_entity_index].lower() for search_word in ip_search_words):
-            payment_type_legal_entity = "ИП"
-        # Видимо еще нужна подпись "Личная карта" и "Налоговая копилка"
-        else:
-            payment_type_legal_entity = ""
-            print("Ошибка в Юр лице для типа оплаты")
-
-        if any(search_word.lower() in values[bank_name_type_index].lower() for search_word in alpha_bank_search_words):
-            payment_type = f'{payment_type_legal_entity} Альфа'
-        elif any(
-                search_word.lower() in values[bank_name_type_index].lower() for search_word in modul_bank_search_words):
-            payment_type = f'{payment_type_legal_entity} Модульбанк'
-        else:
-            payment_type = f'{payment_type_legal_entity} {values[bank_name_type_index]}'
-        '''
-
         # Юр лицо (Получатель1/Плательщик1)
         if any(search_word.lower() in values[legal_entity_index].lower() for search_word in ooo_search_words):
             # search_word in string это функция, которая выполняется для всех search_word в search_words
@@ -764,10 +762,28 @@ class MainScreen(MDScreen):
 
     # Работа с гугл таблицами
     def upload_to_googledrive(self):
-        service_account = gspread.service_account(filename=BankStatementsApp.resource_path(service_account_filename))
-        spreadsheet = service_account.open(google_sheet_name)
-        worksheet = spreadsheet.worksheet(worksheet_name)
         app = BankStatementsApp.get_running_app()
+        service_account = gspread.service_account(filename=BankStatementsApp.resource_path(service_account_filename))
+        try:
+            spreadsheet = service_account.open(google_sheet_name)
+        except:
+            # Вылезающее уведомление с ошибкой SpreadsheetNotFound
+            if not self.google_sheet_name_error_snackbar:
+                self.google_sheet_name_error_snackbar = Snackbar(text=f"Ошибка: неверное название таблицы!",
+                                                      font_size=app.font_size_value,
+                                                      duration=3, size_hint_x=0.8,
+                                                      pos_hint={"center_x": 0.5, "center_y": 0.1})
+            self.google_sheet_name_error_snackbar.open()
+        try:
+            worksheet = spreadsheet.worksheet(worksheet_name)
+        except:
+            # Вылезающее уведомление с ошибкой WorksheetNotFound
+            if not self.worksheet_name_error_snackbar:
+                self.worksheet_name_error_snackbar = Snackbar(text=f"Ошибка: неверное название листа!",
+                                                      font_size=app.font_size_value,
+                                                      duration=3, size_hint_x=0.8,
+                                                      pos_hint={"center_x": 0.5, "center_y": 0.1})
+            self.worksheet_name_error_snackbar.open()
 
         if self.format == "txt":
             required_values = self.get_required_values()
@@ -818,19 +834,71 @@ class MainScreen(MDScreen):
         if not self.settings_dialog:
             self.settings_dialog = MDDialog(
                 title="Настройки",
-                type="confirmation",
-                items=[
-                    CheckboxItem(text="Показывать все варианты статей"),
-                    CheckboxItem(text="Выписка в юанях"),
-                ],
+                type="custom",
+                content_cls=SettingsDialogContent(),
                 buttons=[MDFlatButton(text="Закрыть",
                                       on_release=lambda instance: self.settings_dialog.dismiss())
                 ],
             )
         self.settings_dialog.open()
 
+
+# Содержимое настроек
+class SettingsDialogContent(MDRecycleView):
+    # Обновление настроек при вводе данных
+    def update_settings(self, id, text):
+        if text != "":
+            if id == "starting_directory":
+                global starting_directory
+                starting_directory = text
+                store.put('starting_directory', starting_directory=starting_directory)
+                self.ids.starting_directory.text = ""
+            elif id == "google_sheet_name":
+                global google_sheet_name
+                google_sheet_name = text
+                store.put('google_sheet_name', google_sheet_name=google_sheet_name)
+                self.ids.google_sheet_name.text = ""
+            elif id == "worksheet_name":
+                global worksheet_name
+                worksheet_name = text
+                store.put('worksheet_name', worksheet_name=worksheet_name)
+                self.ids.worksheet_name.text = ""
+
+    # Сброс настроек
+    def reset_settings(self):
+        if store.exists('starting_directory'):
+            store.delete('starting_directory')
+        self.ids.starting_directory.text = ""
+        global starting_directory, starting_directory_default
+        starting_directory = starting_directory_default
+        if store.exists('google_sheet_name'):
+            store.delete('google_sheet_name')
+        self.ids.google_sheet_name.text = ""
+        global google_sheet_name, google_sheet_name_default
+        google_sheet_name = google_sheet_name_default
+        if store.exists('worksheet_name'):
+            store.delete('worksheet_name')
+        self.ids.worksheet_name.text = ""
+        global worksheet_name, worksheet_name_default
+        worksheet_name = worksheet_name_default
+        if store.exists('show_article_options'):
+            store.delete('show_article_options')
+        self.ids.show_article_options.ids.checkbox.active = False
+        global show_article_options
+        show_article_options = False
+        if store.exists('is_cny_statement_manually'):
+            store.delete('is_cny_statement_manually')
+        self.ids.is_cny_statement.ids.checkbox.active = False
+        global is_cny_statement_manually
+        is_cny_statement_manually = False
+
+
 # Элемент (строка) в меню настроек
 class CheckboxItem(OneLineAvatarIconListItem):
+    divider = None
+    if store.exists('is_cny_statement_manually'):
+
+
     def set_check(self, instance_check):
         global show_article_options
         global is_cny_statement_manually
@@ -841,14 +909,18 @@ class CheckboxItem(OneLineAvatarIconListItem):
             instance_check.active = True
         if self.text == "Показывать все варианты статей":
             show_article_options = instance_check.active
+            store.put('show_article_options', show_article_options=show_article_options)
         elif self.text == "Выписка в юанях":
             is_cny_statement_manually = instance_check.active
+            store.put('is_cny_statement_manually', is_cny_statement_manually=is_cny_statement_manually)
 
 
 class BankStatementsApp(MDApp):
+    window_size = window_size
     font_size_value_int = 25  # Размер шрифта цифрой
     font_size_value = f"{font_size_value_int}sp"  # Размер шрифта
     bigger_font_size_value = f"{font_size_value_int*1.5}sp"  # Больший размер шрифта
+    smaller_font_size_value = f"{font_size_value_int*0.7}sp"  # Меньший размер шрифта
 
     def build(self):
         # Устанавливаем название и иконку окна приложения
