@@ -896,8 +896,6 @@ class SettingsDialogContent(MDRecycleView):
 # Элемент (строка) в меню настроек
 class CheckboxItem(OneLineAvatarIconListItem):
     divider = None
-    if store.exists('is_cny_statement_manually'):
-
 
     def set_check(self, instance_check):
         global show_article_options
