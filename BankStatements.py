@@ -777,7 +777,7 @@ class MainScreen(MDScreen):
         except:
             # Вылезающее уведомление с ошибкой SpreadsheetNotFound
             if not self.google_sheet_name_error_snackbar:
-                self.google_sheet_name_error_snackbar = Snackbar(text=f"Ошибка: неверное название таблицы!",
+                self.google_sheet_name_error_snackbar = Snackbar(text=f"Ошибка: неверное название таблицы или отсутствует интернет!",
                                                       font_size=app.font_size_value,
                                                       duration=3, size_hint_x=0.8,
                                                       pos_hint={"center_x": 0.5, "center_y": 0.1})
