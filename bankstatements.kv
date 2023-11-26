@@ -63,14 +63,7 @@
             on_release:
                 root.open_settings()
 
-# Строка в меню настроек
-<CheckboxItem>
-    on_release: root.set_check(checkbox)
-
-    CheckboxLeftWidget:
-        id: checkbox
-        color_active: (0, .7, 0.35, 1)
-
+# Меню настроек
 <SettingsDialogContent>
     size_hint_y: None
     height: dp(app.window_size[1]*0.5)
@@ -85,33 +78,59 @@
         google_sheet_name: google_sheet_name
         worksheet_name: worksheet_name
         reset_settings: reset_settings
+        show_article_options_checkbox: show_article_options_checkbox
+        is_cny_statement_checkbox: is_cny_statement_checkbox
 
-        CheckboxItem:
+        # Чекбокс "Показывать все варианты статей"
+        OneLineAvatarIconListItem:
+            divider: None
             id: show_article_options
             text: "Показывать все варианты статей"
+            on_release: root.set_check(show_article_options_checkbox, self.text)
 
-        CheckboxItem:
+            CheckboxLeftWidget:
+                id: show_article_options_checkbox
+                color_active: (0, .7, 0.35, 1)
+                active: app.show_article_options
+
+        # Чекбокс "Выписка в юанях"
+        OneLineAvatarIconListItem:
+            divider: None
             id: is_cny_statement
             text: "Выписка в юанях"
+            on_release: root.set_check(is_cny_statement_checkbox, self.text)
 
+            CheckboxLeftWidget:
+                id: is_cny_statement_checkbox
+                color_active: (0, .7, 0.35, 1)
+                active: app.is_cny_statement_manually
+
+        # Текстовое поле "Стартовая директория"
         MDTextField:
             id: starting_directory
             multiline: False
+            color_mode: 'custom'
             hint_text: "Стартовая директория (например: /Users/UserName/Downloads)"
             on_text_validate: root.update_settings("starting_directory", self.text)
 
+
+        # Текстовое поле "Название таблицы"
         MDTextField:
             id: google_sheet_name
             multiline: False
+            color_mode: 'custom'
             hint_text: "Название таблицы"
             on_text_validate: root.update_settings("google_sheet_name", self.text)
 
+        # Текстовое поле "Название листа"
         MDTextField:
             id: worksheet_name
             multiline: False
+            color_mode: 'custom'
             hint_text: "Название листа"
             on_text_validate: root.update_settings("worksheet_name", self.text)
 
+        # Кнопка сброса настроек
         MDFlatButton:
             id: reset_settings
             text: "Сбросить настройки"

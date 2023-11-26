@@ -4,7 +4,6 @@ from kivymd.uix.filemanager import MDFileManager
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.snackbar import Snackbar
 from kivymd.uix.dialog import MDDialog
-from kivymd.uix.list import OneLineAvatarIconListItem
 from kivymd.uix.button import MDFlatButton
 from kivymd.uix.recycleview import MDRecycleView
 
@@ -48,11 +47,20 @@ def get_variable_name(variable):
             return name
 
 # Получаем сохранненные в настройках значения
-settings_items = [is_cny_statement_manually, show_article_options, google_sheet_name, worksheet_name, starting_directory]
+settings_items = [google_sheet_name, worksheet_name, starting_directory]
 for item in settings_items:
     item_name = get_variable_name(item)
-    if store.exists(str(item_name)):
+    if store.exists(item_name):
         globals()[item_name] = store.get(item_name)[item_name]
+
+# Отдельно для True/False значений
+if store.exists('is_cny_statement_manually'):
+    is_cny_statement_manually = store.get('is_cny_statement_manually')['is_cny_statement_manually']
+    print(is_cny_statement_manually)
+if store.exists('show_article_options'):
+    show_article_options = store.get('show_article_options')['show_article_options']
+
+print(is_cny_statement_manually, show_article_options)
 
 # Поисковые слова
 ooo_search_words = ("ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО")
@@ -883,21 +891,17 @@ class SettingsDialogContent(MDRecycleView):
         worksheet_name = worksheet_name_default
         if store.exists('show_article_options'):
             store.delete('show_article_options')
-        self.ids.show_article_options.ids.checkbox.active = False
+        self.ids.show_article_options_checkbox.active = False
         global show_article_options
         show_article_options = False
         if store.exists('is_cny_statement_manually'):
             store.delete('is_cny_statement_manually')
-        self.ids.is_cny_statement.ids.checkbox.active = False
+        self.ids.is_cny_statement_checkbox.active = False
         global is_cny_statement_manually
         is_cny_statement_manually = False
 
-
-# Элемент (строка) в меню настроек
-class CheckboxItem(OneLineAvatarIconListItem):
-    divider = None
-
-    def set_check(self, instance_check):
+    # Установка галочки чекбокса
+    def set_check(self, instance_check, text):
         global show_article_options
         global is_cny_statement_manually
 
@@ -905,16 +909,24 @@ class CheckboxItem(OneLineAvatarIconListItem):
             instance_check.active = False
         else:
             instance_check.active = True
-        if self.text == "Показывать все варианты статей":
+        if text == "Показывать все варианты статей":
             show_article_options = instance_check.active
+            print(show_article_options)
             store.put('show_article_options', show_article_options=show_article_options)
-        elif self.text == "Выписка в юанях":
+            print(store.get('show_article_options')['show_article_options'])
+
+        elif text == "Выписка в юанях":
             is_cny_statement_manually = instance_check.active
+            print(is_cny_statement_manually)
             store.put('is_cny_statement_manually', is_cny_statement_manually=is_cny_statement_manually)
 
-
 class BankStatementsApp(MDApp):
+    # Для kv файла
     window_size = window_size
+    is_cny_statement_manually = is_cny_statement_manually
+    show_article_options = show_article_options
+    print(is_cny_statement_manually, show_article_options)
+
     font_size_value_int = 25  # Размер шрифта цифрой
     font_size_value = f"{font_size_value_int}sp"  # Размер шрифта
     bigger_font_size_value = f"{font_size_value_int*1.5}sp"  # Больший размер шрифта
