@@ -96,7 +96,7 @@ marketing_search_words = ("продвижению", )
 providing_bidding_search_words = ("обеспечение заявки", )  # Обеспечение торгов
 education_search_words = ("за обучение", "за образовательные услуги", "ЦЗП")
 sdek_search_words = ("СДЭК", )
-insurance_contributions_with_salary = ("страхования", ) # Стховые взносы с ЗП
+insurance_contributions_with_salary = ("страхования", )  # Стховые взносы с ЗП
 # Две идентичные строчки на 52 рубля (за июнь и август) имеют разные статьи: одна Налоги ОСНО, другая Страховые взнносы
 packaging_search_words = ("упаков", )  # Упаковка
 wildberries_search_words = ("ВАЙЛДБЕРРИЗ", )
@@ -178,6 +178,7 @@ articles_by_search_words_for_comments_or_counterpartys_if_outcome = {purchase_or
 priority_order_of_articles = ("Зарплата - фикс", "Оптовые продажи", "Налоги УСН", "Налоги ОСНО",
                               "Вывод ДС собственником", "Таможенные платежи", "СДЭК", "Кэширование",
                               "Возвраты - приток", "Маркетинг", )
+
 
 class MainScreen(MDScreen):
     def __init__(self, **kwargs):
@@ -434,7 +435,7 @@ class MainScreen(MDScreen):
 
             # Эти значения пока никак не получаются
             accrual_date = ""  # Дата начисления. Используется при налогах (страхование)
-            nds = ""  # НДС 
+            nds = ""  # НДС
             project = ""  # Проект
 
             comment = values[8]  # Комментарий
@@ -914,6 +915,7 @@ class SettingsDialogContent(MDRecycleView):
             is_cny_statement_manually = instance_check.active
             store.put('is_cny_statement_manually', is_cny_statement_manually=is_cny_statement_manually)
 
+
 class BankStatementsApp(MDApp):
     # Для kv файла
     window_size = window_size
@@ -944,5 +946,6 @@ class BankStatementsApp(MDApp):
             # derive the absolute path of the relative_path
             base_path = os.path.abspath('.')
         return os.path.join(base_path, relative_path)
+
 
 BankStatementsApp().run()
