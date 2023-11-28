@@ -27,7 +27,7 @@ from kivy.storage.jsonstore import JsonStore
 store = JsonStore("settings.json")
 
 # Информация о таблице
-google_sheet_name = "Копия для тестов АРТЭЛЬ/ ФИНАНСЫ"  # "АРТЭЛЬ/ ФИНАНСЫ"
+google_sheet_name = "АРТЭЛЬ/ База данных"  # "АРТЭЛЬ/ ФИНАНСЫ"
 google_sheet_name_default = google_sheet_name  # Значение на случай сброса настроек
 service_account_filename = "service_account.json"
 worksheet_name = "БД ДДС"  # Название листа (страницы), которое выбирается снизу таблицы. "БД ДДС"
@@ -56,11 +56,8 @@ for item in settings_items:
 # Отдельно для True/False значений
 if store.exists('is_cny_statement_manually'):
     is_cny_statement_manually = store.get('is_cny_statement_manually')['is_cny_statement_manually']
-    print(is_cny_statement_manually)
 if store.exists('show_article_options'):
     show_article_options = store.get('show_article_options')['show_article_options']
-
-print(is_cny_statement_manually, show_article_options)
 
 # Поисковые слова
 ooo_search_words = ("ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ", "ООО")
@@ -911,13 +908,10 @@ class SettingsDialogContent(MDRecycleView):
             instance_check.active = True
         if text == "Показывать все варианты статей":
             show_article_options = instance_check.active
-            print(show_article_options)
             store.put('show_article_options', show_article_options=show_article_options)
-            print(store.get('show_article_options')['show_article_options'])
 
         elif text == "Выписка в юанях":
             is_cny_statement_manually = instance_check.active
-            print(is_cny_statement_manually)
             store.put('is_cny_statement_manually', is_cny_statement_manually=is_cny_statement_manually)
 
 class BankStatementsApp(MDApp):
@@ -925,7 +919,6 @@ class BankStatementsApp(MDApp):
     window_size = window_size
     is_cny_statement_manually = is_cny_statement_manually
     show_article_options = show_article_options
-    print(is_cny_statement_manually, show_article_options)
 
     font_size_value_int = 25  # Размер шрифта цифрой
     font_size_value = f"{font_size_value_int}sp"  # Размер шрифта
@@ -934,7 +927,7 @@ class BankStatementsApp(MDApp):
 
     def build(self):
         # Устанавливаем название и иконку окна приложения
-        self.title = 'Выгрузка банковских выписок в Google Таблицу "АРТЕЛЬ/ФИНАНСЫ"'
+        self.title = 'Выгрузка банковских выписок в Google Таблицу "АРТЭЛЬ/ База данных"'
         self.icon = self.resource_path('artel_icon.png')
         # Цветовая палитра
         self.theme_cls.primary_palette = "BlueGray"
