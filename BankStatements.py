@@ -27,10 +27,10 @@ from kivy.storage.jsonstore import JsonStore
 store = JsonStore("settings.json")
 
 # Информация о таблице
-google_sheet_name = "Выписки"  # "АРТЭЛЬ/ФИНАНСЫ"
+google_sheet_name = "Копия для тестов АРТЭЛЬ/ ФИНАНСЫ"  # "АРТЭЛЬ/ ФИНАНСЫ"
 google_sheet_name_default = google_sheet_name  # Значение на случай сброса настроек
 service_account_filename = "service_account.json"
-worksheet_name = "Лист1"  # Название листа (страницы), которое выбирается снизу таблицы. "БД ДДС"
+worksheet_name = "БД ДДС"  # Название листа (страницы), которое выбирается снизу таблицы. "БД ДДС"
 worksheet_name_default = worksheet_name
 # Начальная директория файлового менеджера
 starting_directory = "/"
@@ -178,7 +178,7 @@ articles_by_search_words_for_comments_if_outcome = {withdrawal_of_money_by_the_o
 articles_by_search_words_for_comments_or_counterpartys_if_income = {purchase_or_sale_search_words: "Оптовые продажи"}
 articles_by_search_words_for_comments_or_counterpartys_if_outcome = {purchase_or_sale_search_words: "Закупка товара"}
 
-priority_order_of_articles = ("Зарплата - фикc", "Оптовые продажи", "Налоги УСН", "Налоги ОСНО",
+priority_order_of_articles = ("Зарплата - фикс", "Оптовые продажи", "Налоги УСН", "Налоги ОСНО",
                               "Вывод ДС собственником", "Таможенные платежи", "СДЭК", "Кэширование",
                               "Возвраты - приток", "Маркетинг", )
 
@@ -765,8 +765,8 @@ class MainScreen(MDScreen):
     # Поиск следующей свободной строки в таблице
     @staticmethod
     def next_available_row(worksheet):
-        # Смотрим по первой колонке
-        return len(worksheet.col_values(1))+1
+        # Смотрим по второй колонке (первая пустая синяя)
+        return len(worksheet.col_values(2))+1
 
     # Работа с гугл таблицами
     def upload_to_googledrive(self):
@@ -805,7 +805,7 @@ class MainScreen(MDScreen):
             try:
                 # Проверка, что в таблице хватает свободных строк
                 if (self.next_available_row(worksheet)-1 + len(data_to_upload) <= worksheet.row_count):
-                    worksheet.update(f"A{self.next_available_row(worksheet)}:{chr(ord('A') - 1 + len(data_to_upload[0]))}"
+                    worksheet.update(f"B{self.next_available_row(worksheet)}:{chr(ord('B') - 1 + len(data_to_upload[0]))}"
                                      f"{self.next_available_row(worksheet) + len(data_to_upload)}",
                                      data_to_upload, value_input_option='USER_ENTERED')
                     # chr(ord('A')-1+len(data_to_upload[0])) - буква алфавита по номеру начиная с заглавной A
